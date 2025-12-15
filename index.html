@@ -224,26 +224,42 @@ function pointInTriangle(px, py, ax, ay, bx, by, cx, cy){
 function enableDrawing(svg, layer, fixedStroke=null, clipTriangle=null){
   let drawing=false;
   let currentStroke=[];
-  svg.addEventListener('pointerdown',e=>{ drawing=true; currentStroke=[]; drawPoint(svg,layer,e,fixedStroke,currentStroke,clipTriangle); svg.setPointerCapture(e.pointerId); });
-  svg.addEventListener('pointermove',e=>{ if(drawing) drawPoint(svg,layer,e,fixedStroke,currentStroke,clipTriangle); });
-  svg.addEventListener('pointerup',()=>{ drawing=false; if(currentStroke.length) pathsStack[layer.id].push(currentStroke); });
-  svg.addEventListener('pointerleave',()=>{ drawing=false; if(currentStroke.length) pathsStack[layer.id].push(currentStroke); });
+  let prev=null;
+
+  svg.addEventListener('pointerdown',e=>{ drawing=true; currentStroke=[]; prev=null; drawInterpolated(svg,layer,e,fixedStroke,currentStroke,clipTriangle,prev); svg.setPointerCapture(e.pointerId); });
+
+  svg.addEventListener('pointermove',e=>{ if(drawing) drawInterpolated(svg,layer,e,fixedStroke,currentStroke,clipTriangle,prev); prev={x:(e.clientX-svg.getBoundingClientRect().left)*(svg.viewBox.baseVal.width/svg.getBoundingClientRect().width), y:(e.clientY-svg.getBoundingClientRect().top)*(svg.viewBox.baseVal.height/svg.getBoundingClientRect().height)}; });
+
+  svg.addEventListener('pointerup',()=>{ drawing=false; if(currentStroke.length) pathsStack[layer.id].push(currentStroke); prev=null; });
+  svg.addEventListener('pointerleave',()=>{ drawing=false; if(currentStroke.length) pathsStack[layer.id].push(currentStroke); prev=null; });
 }
 
-function drawPoint(svg, layer, e, fixedStroke, strokeArray, clipTriangle){
+function drawInterpolated(svg, layer, e, fixedStroke, strokeArray, clipTriangle, prev){
   const r=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal;
   const x=(e.clientX-r.left)*(vb.width/r.width); const y=(e.clientY-r.top)*(vb.height/r.height);
   if(clipTriangle && !pointInTriangle(x,y,...clipTriangle)) return;
   const size=fixedStroke!==null?fixedStroke:brushSizeValue;
   const svgNS='http://www.w3.org/2000/svg';
-  let shape;
-  switch(brushShape){
-    case 'circle': shape=document.createElementNS(svgNS,'circle'); shape.setAttribute('cx',x); shape.setAttribute('cy',y); shape.setAttribute('r',size/2); break;
-    case 'square': shape=document.createElementNS(svgNS,'rect'); shape.setAttribute('x',x-size/2); shape.setAttribute('y',y-size/2); shape.setAttribute('width',size); shape.setAttribute('height',size); break;
-    case 'diamond': const half=size/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${x},${y-half} ${x+half},${y} ${x},${y+half} ${x-half},${y}`); break;
-    case 'triangle': const h=size; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${x},${y-h/2} ${x+h/2},${y+h/2} ${x-h/2},${y+h/2}`); break;
-  }
-  shape.setAttribute('fill','black'); layer.appendChild(shape); strokeArray.push(shape);
+
+  const points=[];
+  if(prev){
+    const dx=x-prev.x, dy=y-prev.y, dist=Math.sqrt(dx*dx+dy*dy);
+    const steps=Math.ceil(dist/(size/2));
+    for(let i=1;i<=steps;i++){
+      points.push({x:prev.x+dx*i/steps, y:prev.y+dy*i/steps});
+    }
+  } else { points.push({x,y}); }
+
+  points.forEach(pt=>{
+    let shape;
+    switch(brushShape){
+      case 'circle': shape=document.createElementNS(svgNS,'circle'); shape.setAttribute('cx',pt.x); shape.setAttribute('cy',pt.y); shape.setAttribute('r',size/2); break;
+      case 'square': shape=document.createElementNS(svgNS,'rect'); shape.setAttribute('x',pt.x-size/2); shape.setAttribute('y',pt.y-size/2); shape.setAttribute('width',size); shape.setAttribute('height',size); break;
+      case 'diamond': const half=size/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${pt.x},${pt.y-half} ${pt.x+half},${pt.y} ${pt.x},${pt.y+half} ${pt.x-half},${pt.y}`); break;
+      case 'triangle': const h=size; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${pt.x},${pt.y-h/2} ${pt.x+h/2},${pt.y+h/2} ${pt.x-h/2},${pt.y+h/2}`); break;
+    }
+    shape.setAttribute('fill','black'); layer.appendChild(shape); strokeArray.push(shape);
+  });
 }
 
 const triangleLayer=document.getElementById('triangleLayer');
