@@ -3,23 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <title>Triangle Drawing Submission</title>
+
+  <!-- EmailJS -->
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
   <style>
     body {
-      margin: 0;
       padding: 20mm;
       font-family: sans-serif;
       background: white;
     }
 
-    h1 { font-size: 18px; margin-bottom: 10px; }
-    label { font-weight: bold; display: block; margin-top: 12px; }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 12px;
+    }
 
     input[type="text"] {
       width: 100%;
       font-size: 16px;
       padding: 6px;
-      box-sizing: border-box;
     }
 
     button {
@@ -30,84 +34,83 @@
     }
 
     .controls {
-      margin-top: 12px;
+      margin-top: 8px;
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
-    .controls input[type="range"] {
-      width: 200px;
-    }
-
-    .canvas-wrapper {
-      margin-top: 10px;
-    }
-
     svg {
-      width: 121mm;
-      height: 146mm;
-      border: 1px solid black;
       touch-action: none;
       display: block;
     }
+
+    /* ===== Drawing styles ===== */
 
     .triangle-outline {
       fill: none;
       stroke: black;
       stroke-width: 5pt;
+      pointer-events: none; /* CRITICAL */
     }
 
     .draw-path {
       fill: none;
       stroke: black;
-      stroke-width: 5pt;
       stroke-linecap: round;
       stroke-linejoin: round;
-      pointer-events: none; /* prevent paths from blocking drawing */
+      pointer-events: none; /* CRITICAL */
+    }
+
+    .triangle {
+      width: 121mm;
+      height: 146mm;
+      border: 1px solid black;
     }
 
     .signature {
       width: 121mm;
       height: 40mm;
       border: 1px solid black;
-      touch-action: none;
-      display: block;
-    }
-
-    @media print {
-      button { display: none; }
     }
   </style>
 </head>
+
 <body>
 
-<h1>Triangle Drawing Worksheet</h1>
+<h2>Triangle Drawing Worksheet</h2>
 
-<label>Student Name (typed)</label>
+<label>Typed Name</label>
 <input id="typedName" type="text" placeholder="Type your name" />
 
-<label>Draw inside the triangle</label>
 <div class="controls">
-  <label for="strokeSize">Brush size:</label>
-  <input id="strokeSize" type="range" min="1" max="15" value="5" />
-  <span id="strokeValue">5 pt</span>
-</div>
-<div class="canvas-wrapper">
-  <svg id="triangleSvg" viewBox="0 0 121 146">
-    <defs>
-      <clipPath id="clipTriangle">
-        <polygon points="60.5,0 121,146 0,146" />
-      </clipPath>
-    </defs>
-
-    <polygon class="triangle-outline" points="60.5,0 121,146 0,146" />
-    <g id="gridLayer" clip-path="url(#clipTriangle)" pointer-events="none"></g>
-    <g id="triangleLayer" clip-path="url(#clipTriangle)"></g>
-  </svg>
+  <label>Brush size</label>
+  <input id="brushSize" type="range" min="1" max="15" value="5" />
+  <span id="brushValue">5 pt</span>
 </div>
 
-<label>Signature (sign with finger or mouse)</label>
+<label>Draw inside the triangle</label>
+<svg id="triangleSvg" class="triangle" viewBox="0 0 121 146">
+
+  <defs>
+    <clipPath id="clipTriangle">
+      <polygon points="60.5,0 121,146 0,146" />
+    </clipPath>
+  </defs>
+
+  <!-- GRID (visual only) -->
+  <g id="triangleGrid" clip-path="url(#clipTriangle)" pointer-events="none"></g>
+
+  <!-- OUTLINE -->
+  <polygon
+    class="triangle-outline"
+    points="60.5,0 121,146 0,146" />
+
+  <!-- DRAWING -->
+  <g id="triangleLayer" clip-path="url(#clipTriangle)"></g>
+</svg>
+
+<label>Signature</label>
 <svg id="signatureSvg" class="signature" viewBox="0 0 121 40">
   <g id="signatureGrid" pointer-events="none"></g>
   <g id="signatureLayer"></g>
@@ -116,184 +119,134 @@
 <button onclick="submitForm()">Submit</button>
 
 <script>
-  /* =========================
-     EmailJS initialization
-     ========================= */
-  emailjs.init('YOUR_PUBLIC_KEY');
+/* ===============================
+   EmailJS init
+================================ */
+emailjs.init('YOUR_PUBLIC_KEY');
 
-  /* =========================
-     Generic SVG drawing logic
-     ========================= */
-  function enableDrawing(svg, layer) {
-    let drawing = false;
-    let path = null;
-    let drawing = false;
-    let path = null;
+/* ===============================
+   Brush control
+================================ */
+const brush = document.getElementById('brushSize');
+const brushValue = document.getElementById('brushValue');
+brush.oninput = () => brushValue.textContent = brush.value + ' pt';
 
-    function getStrokeWidth() {
-      return document.getElementById('strokeSize')?.value || 5;
-    }
-    let drawing = false;
-    let path = null;
-
-    function getPoint(evt) {
-      const rect = svg.getBoundingClientRect();
-      const vb = svg.viewBox.baseVal;
-      return {
-        x: (evt.clientX - rect.left) * (vb.width / rect.width),
-        y: (evt.clientY - rect.top) * (vb.height / rect.height)
-      };
-    }
-
-    svg.addEventListener('pointerdown', e => {
-      drawing = true;
-      const p = getPoint(e);
-      path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('class', 'draw-path');
-      path.setAttribute('stroke-width', getStrokeWidth() + 'pt');
-      path.setAttribute('d', `M ${p.x} ${p.y}`);
-      layer.appendChild(path);
-      svg.setPointerCapture(e.pointerId);
-    });
-
-    svg.addEventListener('pointermove', e => {
-      if (!drawing || !path) return;
-      const p = getPoint(e);
-      path.setAttribute('d', path.getAttribute('d') + ` L ${p.x} ${p.y}`);
-    });
-
-    function stop(e) {
-      drawing = false;
-      path = null;
-      try { svg.releasePointerCapture(e.pointerId); } catch {}
-    }
-
-    svg.addEventListener('pointerup', stop);
-    svg.addEventListener('pointerleave', stop);
+/* ===============================
+   Draw grid (non-exported)
+================================ */
+function drawGrid(svg, layer, spacing) {
+  const vb = svg.viewBox.baseVal;
+  for (let x = spacing; x < vb.width; x += spacing) {
+    const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    l.setAttribute('x1', x);
+    l.setAttribute('y1', 0);
+    l.setAttribute('x2', x);
+    l.setAttribute('y2', vb.height);
+    l.setAttribute('stroke', '#ccc');
+    l.setAttribute('stroke-width', '0.3');
+    l.setAttribute('pointer-events', 'none');
+    layer.appendChild(l);
   }
+  for (let y = spacing; y < vb.height; y += spacing) {
+    const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    l.setAttribute('x1', 0);
+    l.setAttribute('y1', y);
+    l.setAttribute('x2', vb.width);
+    l.setAttribute('y2', y);
+    l.setAttribute('stroke', '#ccc');
+    l.setAttribute('stroke-width', '0.3');
+    l.setAttribute('pointer-events', 'none');
+    layer.appendChild(l);
+  }
+}
 
-    // Draw grid for triangle (non-exported visual guide)
-  function drawGrid(svg, layer, spacing) {
+drawGrid(triangleSvg, triangleGrid, 10);
+drawGrid(signatureSvg, signatureGrid, 5);
+
+/* ===============================
+   Drawing engine
+================================ */
+function enableDrawing(svg, layer) {
+  let drawing = false;
+  let path;
+
+  function point(e) {
+    const r = svg.getBoundingClientRect();
     const vb = svg.viewBox.baseVal;
-    for (let x = spacing; x < vb.width; x += spacing) {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', x);
-      line.setAttribute('y1', 0);
-      line.setAttribute('x2', x);
-      line.setAttribute('y2', vb.height);
-      line.setAttribute('stroke', '#ccc');
-      line.setAttribute('stroke-width', '0.3');
-      line.setAttribute('pointer-events','none');
-      layer.appendChild(line);
-    }
-    for (let y = spacing; y < vb.height; y += spacing) {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', 0);
-      line.setAttribute('y1', y);
-      line.setAttribute('x2', vb.width);
-      line.setAttribute('y2', y);
-      line.setAttribute('stroke', '#ccc');
-      line.setAttribute('stroke-width', '0.3');
-      line.setAttribute('pointer-events','none');
-      layer.appendChild(line);
-    }
+    return {
+      x: (e.clientX - r.left) * (vb.width / r.width),
+      y: (e.clientY - r.top) * (vb.height / r.height)
+    };
   }
 
-  drawGrid(
-    document.getElementById('triangleSvg'),
-    document.getElementById('gridLayer'),
-    10
-  );
-
-  drawGrid(
-    document.getElementById('signatureSvg'),
-    document.getElementById('signatureGrid'),
-    5
-  );
-
-  enableDrawing(
-    document.getElementById('triangleSvg'),
-    document.getElementById('triangleLayer')
-  );
-
-  document.getElementById('strokeSize').addEventListener('input', e => {
-    document.getElementById('strokeValue').textContent = e.target.value + ' pt';
+  svg.addEventListener('pointerdown', e => {
+    drawing = true;
+    const p = point(e);
+    path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('class', 'draw-path');
+    path.setAttribute('stroke-width', brush.value + 'pt');
+    path.setAttribute('d', `M ${p.x} ${p.y}`);
+    layer.appendChild(path);
+    svg.setPointerCapture(e.pointerId);
   });
 
-  enableDrawing(
-    document.getElementById('signatureSvg'),
-    document.getElementById('signatureLayer')
-  );
+  svg.addEventListener('pointermove', e => {
+    if (!drawing) return;
+    const p = point(e);
+    path.setAttribute('d', path.getAttribute('d') + ` L ${p.x} ${p.y}`);
+  });
 
-  /* =========================
-     Convert SVG to PNG
-     ========================= */
-  function svgToPng(svg) {
-    return new Promise(resolve => {
-      // Clone SVG so we don't mutate the on-screen one
-      const clone = svg.cloneNode(true);
+  svg.addEventListener('pointerup', () => drawing = false);
+  svg.addEventListener('pointerleave', () => drawing = false);
+}
 
-      // Ensure no background fill (fully transparent)
-      clone.style.background = 'none';
-      clone.setAttribute('style', 'background:none');
+enableDrawing(triangleSvg, triangleLayer);
+enableDrawing(signatureSvg, signatureLayer);
 
-      // Remove any explicit white fills if present
-      clone.querySelectorAll('*').forEach(el => {
-        if (el.getAttribute && el.getAttribute('fill') === 'white') {
-          el.setAttribute('fill', 'none');
-        }
-      });
+/* ===============================
+   SVG → transparent PNG
+================================ */
+function svgToPng(svg) {
+  return new Promise(resolve => {
+    const clone = svg.cloneNode(true);
+    clone.querySelectorAll('[pointer-events]').forEach(n =>
+      n.parentNode.removeChild(n)
+    );
 
-      const vb = clone.viewBox.baseVal;
-      const xml = new XMLSerializer().serializeToString(clone);
-      const svg64 = btoa(unescape(encodeURIComponent(xml)));
-      const image64 = 'data:image/svg+xml;base64,' + svg64;
+    const xml = new XMLSerializer().serializeToString(clone);
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0);
+      resolve(c.toDataURL('image/png'));
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(xml)));
+  });
+}
 
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = vb.width;
-        canvas.height = vb.height;
+/* ===============================
+   Submit
+================================ */
+async function submitForm() {
+  const name = typedName.value.trim();
+  if (!name) return alert('Type your name');
 
-        const ctx = canvas.getContext('2d');
-        // IMPORTANT: do NOT paint a background — leave transparent
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
+  const tri = await svgToPng(triangleSvg);
+  const sig = await svgToPng(signatureSvg);
 
-        resolve(canvas.toDataURL('image/png'));
-      };
-      img.src = image64;
-    });
-  };
-      img.src = image64;
-    });
-  }
+  emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', {
+    student_name: name,
+    triangle_image: tri,
+    signature_image: sig,
+    to_email: 'stevegabrio@gmail.com'
+  });
 
-  /* =========================
-     Submit handler
-     ========================= */
-  async function submitForm() {
-    const name = document.getElementById('typedName').value.trim();
-    if (!name) {
-      alert('Please type your name first');
-      return;
-    }
-
-    const triangleImg = await svgToPng(document.getElementById('triangleSvg'));
-    const signatureImg = await svgToPng(document.getElementById('signatureSvg'));
-
-    emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', {
-      student_name: name,
-      triangle_image: triangleImg,
-      signature_image: signatureImg,
-      to_email: 'stevegabrio@gmail.com'
-    }).then(() => {
-      alert('Submitted successfully!');
-    }, err => {
-      console.error(err);
-      alert('Failed to send email');
-    });
-  }
+  alert('Submitted!');
+}
 </script>
 
 </body>
