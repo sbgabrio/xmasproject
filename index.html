@@ -230,7 +230,25 @@ function enableDrawing(svg, layer, fixedStroke=null, clipTriangle=null){
 
   svg.addEventListener('pointermove',e=>{ if(drawing) drawInterpolated(svg,layer,e,fixedStroke,currentStroke,clipTriangle,prev); prev={x:(e.clientX-svg.getBoundingClientRect().left)*(svg.viewBox.baseVal.width/svg.getBoundingClientRect().width), y:(e.clientY-svg.getBoundingClientRect().top)*(svg.viewBox.baseVal.height/svg.getBoundingClientRect().height)}; });
 
-  svg.addEventListener('pointerup',()=>{ drawing=false; if(currentStroke.length) pathsStack[layer.id].push(currentStroke); prev=null; });
+  svg.addEventListener('pointerup',()=>{ 
+    drawing=false;
+    if(currentStroke.length){ 
+      if(clipTriangle){
+        currentStroke.forEach(shape=>{
+          let cx=0, cy=0;
+          switch(shape.tagName){
+            case 'circle': cx=parseFloat(shape.getAttribute('cx')); cy=parseFloat(shape.getAttribute('cy')); break;
+            case 'rect': cx=parseFloat(shape.getAttribute('x'))+parseFloat(shape.getAttribute('width'))/2; cy=parseFloat(shape.getAttribute('y'))+parseFloat(shape.getAttribute('height'))/2; break;
+            case 'polygon': const pts=shape.getAttribute('points').split(' ').map(p=>p.split(',').map(Number)); cx=pts.reduce((sum,p)=>sum+p[0],0)/pts.length; cy=pts.reduce((sum,p)=>sum+p[1],0)/pts.length; break;
+          }
+          if(!pointInTriangle(cx,cy,...clipTriangle)) shape.remove();
+        });
+      }
+      pathsStack[layer.id].push(currentStroke); 
+    }
+    prev=null; 
+  });
+
   svg.addEventListener('pointerleave',()=>{ drawing=false; if(currentStroke.length) pathsStack[layer.id].push(currentStroke); prev=null; });
 }
 
@@ -245,9 +263,7 @@ function drawInterpolated(svg, layer, e, fixedStroke, strokeArray, clipTriangle,
   if(prev){
     const dx=x-prev.x, dy=y-prev.y, dist=Math.sqrt(dx*dx+dy*dy);
     const steps=Math.ceil(dist/(size/2));
-    for(let i=1;i<=steps;i++){
-      points.push({x:prev.x+dx*i/steps, y:prev.y+dy*i/steps});
-    }
+    for(let i=1;i<=steps;i++){ points.push({x:prev.x+dx*i/steps, y:prev.y+dy*i/steps}); }
   } else { points.push({x,y}); }
 
   points.forEach(pt=>{
@@ -296,11 +312,24 @@ async function submitForm(){
 }
 
 async function previewDrawing(){
-  const tri=await svgToPng(triangleSvg,'.triangle-outline');
-  const sig=await svgToPng(signatureSvg);
-  const container=document.getElementById('previewContainer');
-  container.innerHTML='<h3>Triangle Drawing Preview:</h3><img src="'+tri+'" alt="Triangle Drawing" /><h3>Signature Preview:</h3><img src="'+sig+'" alt="Signature" />';
-}
-</script>
-</body>
-</html>
+  const triData = await svgToPng(triangleSvg,'.triangle-outline');
+  const sigData = await svgToPng(signatureSvg);
+
+  const container = document.getElementById('previewContainer');
+  container.innerHTML = '';
+
+  const triDiv = document.createElement('div');
+  triDiv.style.position = 'relative';
+  triDiv.style.width = '100%';
+  triDiv.style.maxWidth = '500px';
+  triDiv.style.backgroundImage = 'url("https://www.sketchuptextureclub.com/public/texture_d/68-cherry-wood-fine-medium-color-texture-seamless-hr.jpg")';
+  triDiv.style.backgroundSize = 'cover';
+  triDiv.style.border = '1px solid #333';
+
+  const triImg = document.createElement('img');
+  triImg.src = triData;
+  triImg.style.width = '100%';
+  triImg.style.display = 'block';
+  triDiv.appendChild(triImg);
+
+  container.appendChild(document.createElement
