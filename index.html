@@ -1,138 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Triangle Drawing Submission</title>
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-  <style>
-    body {
-      padding: 20mm;
-      font-family: 'Comic Sans MS', sans-serif;
-      background: linear-gradient(to bottom, #fff9f0, #ffe6e6);
-      color: #333;
-    }
-
-    h2 {
-      text-align: center;
-      color: #a80000;
-      text-shadow: 1px 1px #fff;
-    }
-
-    label {
-      font-weight: bold;
-      display: block;
-      margin-top: 12px;
-      color: #a80000;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      font-size: 16px;
-      padding: 6px;
-      border: 2px solid #a80000;
-      border-radius: 5px;
-      box-shadow: 1px 1px 5px rgba(0,0,0,0.2);
-    }
-
-    button {
-      margin-top: 16px;
-      padding: 10px 16px;
-      font-size: 16px;
-      cursor: pointer;
-      background-color: #a80000;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-      transition: transform 0.1s;
-    }
-
-    button:hover {
-      transform: scale(1.05);
-    }
-
-    .controls {
-      margin-top: 8px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    svg {
-      touch-action: none;
-      display: block;
-      background: rgba(255, 255, 255, 0.8);
-      border-radius: 10px;
-      margin: 10px 0;
-    }
-
-    .triangle-outline {
-      fill: #006400;
-      stroke: #006400;
-      stroke-width: 5pt;
-      pointer-events: none;
-    }
-
-    .triangle {
-      width: 100%;
-      height: auto;
-      max-height: 500px;
-      border: 2px solid #006400;
-      position: relative;
-    }
-
-    .signature {
-      width: 121mm;
-      height: 40mm;
-      border: 2px solid #006400;
-      position: relative;
-    }
-
-    .signature-line {
-      stroke: #006400;
-      stroke-width: 1;
-      stroke-dasharray: none;
-    }
-
-    .button-group {
-      display: flex;
-      gap: 10px;
-      margin-top: 5px;
-    }
-
-    #previewContainer {
-      margin-top: 20px;
-    }
-
-    #previewContainer img {
-      max-width: 100%;
-      border: 1px solid #333;
-      margin-top: 10px;
-    }
-
-    .brush-btn {
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      border: 1px solid #a80000;
-      border-radius: 50%;
-      background: white;
-      padding: 0;
-    }
-
-    .brush-btn svg {
-      display: block;
-    }
-
-    #brushPreview {
-      display: inline-block;
-      vertical-align: middle;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Triangle Drawing Submission</title>
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<style>
+body {
+    padding: 20mm;
+    font-family: 'Comic Sans MS', sans-serif;
+    background: linear-gradient(to bottom, #fff9f0, #ffe6e6);
+    color: #333;
+}
+h2 {
+    text-align: center;
+    color: #a80000;
+    text-shadow: 1px 1px #fff;
+}
+label {
+    font-weight: bold;
+    display: block;
+    margin-top: 12px;
+    color: #a80000;
+}
+input[type="text"] {
+    width: 100%;
+    font-size: 16px;
+    padding: 6px;
+    border: 2px solid #a80000;
+    border-radius: 5px;
+}
+button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #a80000;
+    color: white;
+    border: none;
+    border-radius: 8px;
+}
+.controls, .button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+    flex-wrap: wrap;
+}
+svg {
+    touch-action: none;
+    display: block;
+    background: rgba(255,255,255,0.8);
+    border-radius: 10px;
+    margin: 10px 0;
+}
+.triangle-outline {
+    fill: #006400;
+    stroke: #006400;
+    stroke-width: 5pt;
+    pointer-events: none;
+}
+.triangle {
+    width: 100%;
+    max-height: 500px;
+    border: 2px solid #006400;
+    position: relative;
+}
+.signature {
+    width: 121mm;
+    height: 40mm;
+    border: 2px solid #006400;
+}
+.signature-line {
+    stroke: #006400;
+    stroke-width: 1;
+}
+.brush-btn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 1px solid #a80000;
+    border-radius: 50%;
+    background: white;
+}
+#brushPreview {
+    display: inline-block;
+    vertical-align: middle;
+}
+#previewContainer img {
+    max-width: 100%;
+    border: 1px solid #333;
+    margin-top: 10px;
+}
+</style>
 </head>
 <body>
 
@@ -142,43 +103,50 @@
 <input id="typedName" type="text" placeholder="Type your name" />
 
 <div class="controls">
-  <label>Brush Selector</label>
-  <div id="brushOptions" style="display:flex; gap:10px; align-items:center;">
-    <div class="brush-btn" data-size="5" data-shape="circle"><svg width="20" height="20"><circle cx="10" cy="10" r="5" fill="black"/></svg></div>
-    <div class="brush-btn" data-size="5" data-shape="square"><svg width="20" height="20"><rect x="5" y="5" width="10" height="10" fill="black"/></svg></div>
-    <div class="brush-btn" data-size="5" data-shape="diamond"><svg width="20" height="20"><polygon points="10,2 18,10 10,18 2,10" fill="black"/></svg></div>
-    <div class="brush-btn" data-size="5" data-shape="triangle"><svg width="20" height="20"><polygon points="10,2 18,18 2,18" fill="black"/></svg></div>
-    <button id="decreaseBrush">–</button>
-    <button id="increaseBrush">+</button>
-    <div id="brushPreview"></div>
-  </div>
+    <label>Brush Selector</label>
+    <div id="brushOptions" style="display:flex; gap:10px; align-items:center;">
+        <div class="brush-btn" data-size="5" data-shape="circle">
+            <svg width="20" height="20"><circle cx="10" cy="10" r="5" fill="black"/></svg>
+        </div>
+        <div class="brush-btn" data-size="5" data-shape="square">
+            <svg width="20" height="20"><rect x="5" y="5" width="10" height="10" fill="black"/></svg>
+        </div>
+        <div class="brush-btn" data-size="5" data-shape="diamond">
+            <svg width="20" height="20"><polygon points="10,2 18,10 10,18 2,10" fill="black"/></svg>
+        </div>
+        <div class="brush-btn" data-size="5" data-shape="triangle">
+            <svg width="20" height="20"><polygon points="10,2 18,18 2,18" fill="black"/></svg>
+        </div>
+        <button id="decreaseBrush">–</button>
+        <button id="increaseBrush">+</button>
+        <div id="brushPreview"></div>
+    </div>
 </div>
 
 <label>Draw inside the triangle</label>
 <div class="button-group">
-  <button onclick="undo(triangleLayer)">Undo</button>
-  <button onclick="clearLayer(triangleLayer)">Clear</button>
+    <button onclick="undo(triangleLayer)">Undo</button>
+    <button onclick="clearLayer(triangleLayer)">Clear</button>
 </div>
 <svg id="triangleSvg" class="triangle" viewBox="0 0 121 146">
-  <polygon class="triangle-outline" points="60.5,0 121,146 0,146" />
-  <g id="triangleLayer"></g>
+    <polygon class="triangle-outline" points="60.5,0 121,146 0,146" />
+    <g id="triangleLayer"></g>
 </svg>
 
 <label>Signature</label>
 <div class="button-group">
-  <button onclick="undo(signatureLayer)">Undo</button>
-  <button onclick="clearLayer(signatureLayer)">Clear</button>
+    <button onclick="undo(signatureLayer)">Undo</button>
+    <button onclick="clearLayer(signatureLayer)">Clear</button>
 </div>
 <svg id="signatureSvg" class="signature" viewBox="0 0 121 40">
-  <line x1="5" y1="35" x2="116" y2="35" class="signature-line" />
-  <g id="signatureLayer"></g>
+    <line x1="5" y1="35" x2="116" y2="35" class="signature-line" />
+    <g id="signatureLayer"></g>
 </svg>
 
 <div class="button-group">
-  <button onclick="submitForm()">Submit</button>
-  <button onclick="previewDrawing()">Preview</button>
+    <button onclick="submitForm()">Submit</button>
+    <button onclick="previewDrawing()">Preview</button>
 </div>
-
 <div id="previewContainer"></div>
 
 <script>
@@ -187,95 +155,105 @@ emailjs.init('2MRCF5mqDT4FkYDi-');
 let brushSizeValue = 5;
 let brushShape = 'circle';
 const brushPreview = document.getElementById('brushPreview');
+
 function updateBrushPreview(){
-  brushPreview.innerHTML='';
-  const svgNS='http://www.w3.org/2000/svg';
-  const s=document.createElementNS(svgNS,'svg');
-  s.setAttribute('width','20'); s.setAttribute('height','20');
-  let shape;
-  switch(brushShape){
-    case 'circle': shape=document.createElementNS(svgNS,'circle'); shape.setAttribute('cx','10'); shape.setAttribute('cy','10'); shape.setAttribute('r',brushSizeValue/2); break;
-    case 'square': shape=document.createElementNS(svgNS,'rect'); const offset=10-brushSizeValue/2; shape.setAttribute('x',offset); shape.setAttribute('y',offset); shape.setAttribute('width',brushSizeValue); shape.setAttribute('height',brushSizeValue); break;
-    case 'diamond': const half=brushSizeValue/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${10},${10-half} ${10+half},10 ${10},${10+half} ${10-half},10`); break;
-    case 'triangle': const h=brushSizeValue; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${10},${10-h/2} ${10+h/2},${10+h/2} ${10-h/2},${10+h/2}`); break;
-  }
-  shape.setAttribute('fill','black'); s.appendChild(shape); brushPreview.appendChild(s);
+    brushPreview.innerHTML='';
+    const svgNS='http://www.w3.org/2000/svg';
+    const s=document.createElementNS(svgNS,'svg');
+    s.setAttribute('width','20'); s.setAttribute('height','20');
+    let shape;
+    switch(brushShape){
+        case 'circle': shape=document.createElementNS(svgNS,'circle'); shape.setAttribute('cx','10'); shape.setAttribute('cy','10'); shape.setAttribute('r',brushSizeValue/2); break;
+        case 'square': shape=document.createElementNS(svgNS,'rect'); const offset=10-brushSizeValue/2; shape.setAttribute('x',offset); shape.setAttribute('y',offset); shape.setAttribute('width',brushSizeValue); shape.setAttribute('height',brushSizeValue); break;
+        case 'diamond': const half=brushSizeValue/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${10},${10-half} ${10+half},10 ${10},${10+half} ${10-half},10`); break;
+        case 'triangle': const h=brushSizeValue; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${10},${10-h/2} ${10+h/2},${10+h/2} ${10-h/2},${10+h/2}`); break;
+    }
+    shape.setAttribute('fill','black'); s.appendChild(shape); brushPreview.appendChild(s);
 }
 updateBrushPreview();
 
-document.querySelectorAll('.brush-btn').forEach(btn => { btn.addEventListener('click', ()=>{ brushSizeValue = parseFloat(btn.dataset.size); brushShape = btn.dataset.shape; updateBrushPreview(); }); });
+document.querySelectorAll('.brush-btn').forEach(btn => { 
+    btn.addEventListener('click', ()=>{
+        brushSizeValue = parseFloat(btn.dataset.size);
+        brushShape = btn.dataset.shape;
+        updateBrushPreview();
+    }); 
+});
 document.getElementById('increaseBrush').addEventListener('click', ()=>{ brushSizeValue=Math.min(15,brushSizeValue+0.5); updateBrushPreview(); });
 document.getElementById('decreaseBrush').addEventListener('click', ()=>{ brushSizeValue=Math.max(1,brushSizeValue-0.5); updateBrushPreview(); });
 
 let pathsStack = { triangleLayer: [], signatureLayer: [] };
 
 function pointInTriangle(px, py, ax, ay, bx, by, cx, cy){
-  const v0x=cx-ax, v0y=cy-ay;
-  const v1x=bx-ax, v1y=by-ay;
-  const v2x=px-ax, v2y=py-ay;
-  const dot00=v0x*v0x+v0y*v0y; const dot01=v0x*v1x+v0y*v1y;
-  const dot02=v0x*v2x+v0y*v2y; const dot11=v1x*v1x+v1y*v1y; const dot12=v1x*v2x+v1y*v2y;
-  const invDenom=1/(dot00*dot11-dot01*dot01);
-  const u=(dot11*dot02-dot01*dot12)*invDenom;
-  const v=(dot00*dot12-dot01*dot02)*invDenom;
-  return (u>=0)&&(v>=0)&&(u+v<=1);
+    const v0x=cx-ax, v0y=cy-ay; const v1x=bx-ax, v1y=by-ay; const v2x=px-ax, v2y=py-ay;
+    const dot00=v0x*v0x+v0y*v0y; const dot01=v0x*v1x+v0y*v1y; const dot02=v0x*v2x+v0y*v2y;
+    const dot11=v1x*v1x+v1y*v1y; const dot12=v1x*v2x+v1y*v2y;
+    const invDenom=1/(dot00*dot11-dot01*dot01);
+    const u=(dot11*dot02-dot01*dot12)*invDenom;
+    const v=(dot00*dot12-dot01*dot02)*invDenom;
+    return (u>=0)&&(v>=0)&&(u+v<=1);
 }
 
-function enableDrawing(svg, layer, fixedStroke=null, clipTriangle=null){
-  let drawing=false;
-  let currentStroke=[];
-  let prev=null;
+// Multi-touch drawing
+function enableDrawingMultiTouch(svg, layer, fixedStroke=null, clipTriangle=null){
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const activePointers = {};
 
-  svg.addEventListener('pointerdown',e=>{ drawing=true; currentStroke=[]; prev=null; drawInterpolated(svg,layer,e,fixedStroke,currentStroke,clipTriangle,prev); svg.setPointerCapture(e.pointerId); });
-
-  svg.addEventListener('pointermove',e=>{ if(drawing) drawInterpolated(svg,layer,e,fixedStroke,currentStroke,clipTriangle,prev); prev={x:(e.clientX-svg.getBoundingClientRect().left)*(svg.viewBox.baseVal.width/svg.getBoundingClientRect().width), y:(e.clientY-svg.getBoundingClientRect().top)*(svg.viewBox.baseVal.height/svg.getBoundingClientRect().height)}; });
-
-  svg.addEventListener('pointerup',()=>{ 
-    drawing=false;
-    if(currentStroke.length){ 
-      if(clipTriangle){
-        currentStroke.forEach(shape=>{
-          let cx=0, cy=0;
-          switch(shape.tagName){
-            case 'circle': cx=parseFloat(shape.getAttribute('cx')); cy=parseFloat(shape.getAttribute('cy')); break;
-            case 'rect': cx=parseFloat(shape.getAttribute('x'))+parseFloat(shape.getAttribute('width'))/2; cy=parseFloat(shape.getAttribute('y'))+parseFloat(shape.getAttribute('height'))/2; break;
-            case 'polygon': const pts=shape.getAttribute('points').split(' ').map(p=>p.split(',').map(Number)); cx=pts.reduce((sum,p)=>sum+p[0],0)/pts.length; cy=pts.reduce((sum,p)=>sum+p[1],0)/pts.length; break;
-          }
-          if(!pointInTriangle(cx,cy,...clipTriangle)) shape.remove();
-        });
-      }
-      pathsStack[layer.id].push(currentStroke); 
+    function addPoint(pt, stroke){
+        const size = fixedStroke!==null ? fixedStroke : brushSizeValue;
+        let shape;
+        switch(brushShape){
+            case 'circle': shape=document.createElementNS(svgNS,'circle'); shape.setAttribute('cx',pt.x); shape.setAttribute('cy',pt.y); shape.setAttribute('r', size/2); break;
+            case 'square': shape=document.createElementNS(svgNS,'rect'); shape.setAttribute('x',pt.x-size/2); shape.setAttribute('y',pt.y-size/2); shape.setAttribute('width',size); shape.setAttribute('height',size); break;
+            case 'diamond': const half=size/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${pt.x},${pt.y-half} ${pt.x+half},${pt.y} ${pt.x},${pt.y+half} ${pt.x-half},${pt.y}`); break;
+            case 'triangle': const h=size; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${pt.x},${pt.y-h/2} ${pt.x+h/2},${pt.y+h/2} ${pt.x-h/2},${pt.y+h/2}`); break;
+        }
+        shape.setAttribute('fill','black'); layer.appendChild(shape);
+        stroke.push(shape);
     }
-    prev=null; 
-  });
 
-  svg.addEventListener('pointerleave',()=>{ drawing=false; if(currentStroke.length) pathsStack[layer.id].push(currentStroke); prev=null; });
-}
+    function pointerMoveHandler(e){
+        const id = e.pointerId;
+        if(!activePointers[id]) return;
+        e.preventDefault();
+        const r = svg.getBoundingClientRect(); const vb = svg.viewBox.baseVal;
+        const x = (e.clientX - r.left)*(vb.width/r.width);
+        const y = (e.clientY - r.top)*(vb.height/r.height);
+        if(clipTriangle && !pointInTriangle(x,y,60.5,0,121,146,0,146)) return;
 
-function drawInterpolated(svg, layer, e, fixedStroke, strokeArray, clipTriangle, prev){
-  const r=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal;
-  const x=(e.clientX-r.left)*(vb.width/r.width); const y=(e.clientY-r.top)*(vb.height/r.height);
-  if(clipTriangle && !pointInTriangle(x,y,...clipTriangle)) return;
-  const size=fixedStroke!==null?fixedStroke:brushSizeValue;
-  const svgNS='http://www.w3.org/2000/svg';
-
-  const points=[];
-  if(prev){
-    const dx=x-prev.x, dy=y-prev.y, dist=Math.sqrt(dx*dx+dy*dy);
-    const steps=Math.ceil(dist/(size/2));
-    for(let i=1;i<=steps;i++){ points.push({x:prev.x+dx*i/steps, y:prev.y+dy*i/steps}); }
-  } else { points.push({x,y}); }
-
-  points.forEach(pt=>{
-    let shape;
-    switch(brushShape){
-      case 'circle': shape=document.createElementNS(svgNS,'circle'); shape.setAttribute('cx',pt.x); shape.setAttribute('cy',pt.y); shape.setAttribute('r',size/2); break;
-      case 'square': shape=document.createElementNS(svgNS,'rect'); shape.setAttribute('x',pt.x-size/2); shape.setAttribute('y',pt.y-size/2); shape.setAttribute('width',size); shape.setAttribute('height',size); break;
-      case 'diamond': const half=size/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${pt.x},${pt.y-half} ${pt.x+half},${pt.y} ${pt.x},${pt.y+half} ${pt.x-half},${pt.y}`); break;
-      case 'triangle': const h=size; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${pt.x},${pt.y-h/2} ${pt.x+h/2},${pt.y+h/2} ${pt.x-h/2},${pt.y+h/2}`); break;
+        const stroke = activePointers[id].stroke;
+        const prev = activePointers[id].prev;
+        const points = [];
+        if(prev){ 
+            const dx = x-prev.x, dy = y-prev.y, dist = Math.sqrt(dx*dx+dy*dy), steps = Math.ceil(dist/(fixedStroke||brushSizeValue/2));
+            for(let i=1;i<=steps;i++) points.push({x:prev.x+dx*i/steps, y:prev.y+dy*i/steps});
+        } else points.push({x,y});
+        points.forEach(pt=>addPoint(pt, stroke));
+        activePointers[id].prev = {x,y};
     }
-    shape.setAttribute('fill','black'); layer.appendChild(shape); strokeArray.push(shape);
-  });
+
+    function pointerUpLeave(e){
+        const id = e.pointerId;
+        if(activePointers[id]){
+            const stroke = activePointers[id].stroke;
+            if(stroke.length) pathsStack[layer.id].push(stroke);
+            delete activePointers[id];
+        }
+        try{ svg.releasePointerCapture(id); }catch{}
+    }
+
+    svg.addEventListener('pointerdown', e=>{
+        e.preventDefault();
+        const id = e.pointerId;
+        const stroke = [];
+        activePointers[id] = { stroke, prev:null };
+        svg.setPointerCapture(id);
+        pointerMoveHandler(e);
+    }, {passive:false});
+
+    svg.addEventListener('pointermove', pointerMoveHandler, {passive:false});
+    svg.addEventListener('pointerup', pointerUpLeave);
+    svg.addEventListener('pointerleave', pointerUpLeave);
 }
 
 const triangleLayer=document.getElementById('triangleLayer');
@@ -283,53 +261,59 @@ const signatureLayer=document.getElementById('signatureLayer');
 const triangleSvg=document.getElementById('triangleSvg');
 const signatureSvg=document.getElementById('signatureSvg');
 
-enableDrawing(triangleSvg,triangleLayer,null,[60.5,0,121,146,0,146]);
-enableDrawing(signatureSvg,signatureLayer,1);
+enableDrawingMultiTouch(triangleSvg, triangleLayer, null, true);
+enableDrawingMultiTouch(signatureSvg, signatureLayer, 1);
 
 function undo(layer){ const strokes=pathsStack[layer.id]; if(strokes.length){ const lastStroke=strokes.pop(); lastStroke.forEach(el=>layer.removeChild(el)); } }
 function clearLayer(layer){ while(layer.firstChild) layer.removeChild(layer.firstChild); pathsStack[layer.id]=[]; }
 
 async function svgToPng(svg, excludeSelector=null){
-  return new Promise(resolve=>{
-    const vb=svg.viewBox.baseVal; const clone=svg.cloneNode(true);
-    if(excludeSelector) clone.querySelectorAll(excludeSelector).forEach(n=>n.remove());
-    const xml=new XMLSerializer().serializeToString(clone);
-    const img=new Image(); img.onload=()=>{
-      const c=document.createElement('canvas'); c.width=vb.width; c.height=vb.height;
-      const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); ctx.drawImage(img,0,0,vb.width,vb.height);
-      resolve(c.toDataURL('image/png'));
-    };
-    img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));
-  });
+    return new Promise(resolve=>{
+        const vb=svg.viewBox.baseVal; const clone=svg.cloneNode(true);
+        if(excludeSelector) clone.querySelectorAll(excludeSelector).forEach(n=>n.remove());
+        const xml=new XMLSerializer().serializeToString(clone); const img=new Image();
+        img.onload=()=>{
+            const c=document.createElement('canvas'); c.width=vb.width; c.height=vb.height;
+            const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); ctx.drawImage(img,0,0,vb.width,vb.height);
+            resolve(c.toDataURL('image/png'));
+        };
+        img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));
+    });
 }
 
 async function submitForm(){
-  const name=typedName.value.trim(); if(!name) return alert('Type your name');
-  const tri=await svgToPng(triangleSvg,'.triangle-outline');
-  const sig=await svgToPng(signatureSvg);
-  emailjs.send('service_8s9eadc','template_jm26nk5',{student_name:name,triangle_image:tri,signature_image:sig,to_email:'stevegabrio@gmail.com'});
-  alert('Submitted!');
+    const name=typedName.value.trim(); if(!name) return alert('Type your name');
+    const tri=await svgToPng(triangleSvg,'.triangle-outline');
+    const sig=await svgToPng(signatureSvg);
+    emailjs.send('service_8s9eadc','template_jm26nk5',{student_name:name,triangle_image:tri,signature_image:sig,to_email:'stevegabrio@gmail.com'});
+    alert('Submitted!');
 }
 
 async function previewDrawing(){
-  const triData = await svgToPng(triangleSvg,'.triangle-outline');
-  const sigData = await svgToPng(signatureSvg);
+    const triData = await svgToPng(triangleSvg,'.triangle-outline');
+    const sigData = await svgToPng(signatureSvg);
 
-  const container = document.getElementById('previewContainer');
-  container.innerHTML = '';
+    const container = document.getElementById('previewContainer');
+    container.innerHTML='';
 
-  const triDiv = document.createElement('div');
-  triDiv.style.position = 'relative';
-  triDiv.style.width = '100%';
-  triDiv.style.maxWidth = '500px';
-  triDiv.style.backgroundImage = 'url("https://www.sketchuptextureclub.com/public/texture_d/68-cherry-wood-fine-medium-color-texture-seamless-hr.jpg")';
-  triDiv.style.backgroundSize = 'cover';
-  triDiv.style.border = '1px solid #333';
+    const triDiv=document.createElement('div');
+    triDiv.style.position='relative';
+    triDiv.style.width='100%';
+    triDiv.style.maxWidth='500px';
+    triDiv.style.backgroundImage='url("https://www.sketchuptextureclub.com/public/texture_d/68-cherry-wood-fine-medium-color-texture-seamless-hr.jpg")';
+    triDiv.style.backgroundSize='cover';
+    triDiv.style.border='1px solid #333';
 
-  const triImg = document.createElement('img');
-  triImg.src = triData;
-  triImg.style.width = '100%';
-  triImg.style.display = 'block';
-  triDiv.appendChild(triImg);
+    const triImg=document.createElement('img');
+    triImg.src=triData; triImg.style.width='100%'; triImg.style.display='block';
+    triDiv.appendChild(triImg);
 
-  container.appendChild(document.createElement
+    container.appendChild(document.createElement('h3')).textContent='Triangle Drawing Preview:';
+    container.appendChild(triDiv);
+
+    container.appendChild(document.createElement('h3')).textContent='Signature Preview:';
+    const sigImg=document.createElement('img'); sigImg.src=sigData; container.appendChild(sigImg);
+}
+</script>
+</body>
+</html>
