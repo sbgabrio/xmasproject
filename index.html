@@ -160,12 +160,6 @@
   <button onclick="clearLayer(triangleLayer)">Clear</button>
 </div>
 <svg id="triangleSvg" class="triangle" viewBox="0 0 121 146">
-  <defs>
-    <clipPath id="clipTriangle">
-      <polygon points="60.5,0 121,146 0,146" />
-    </clipPath>
-  </defs>
-  <g id="triangleGrid" pointer-events="none"></g>
   <polygon class="triangle-outline" points="60.5,0 121,146 0,146" />
   <g id="triangleLayer" clip-path="url(#clipTriangle)"></g>
 </svg>
@@ -177,7 +171,6 @@
 </div>
 <svg id="signatureSvg" class="signature" viewBox="0 0 121 40">
   <line x1="5" y1="35" x2="116" y2="35" class="signature-line" />
-  <g id="signatureGrid" pointer-events="none"></g>
   <g id="signatureLayer"></g>
 </svg>
 
@@ -203,12 +196,10 @@ function updateBrushPreview(){
   switch(brushShape){
     case 'circle': shape=document.createElementNS(svgNS,'circle'); shape.setAttribute('cx','10'); shape.setAttribute('cy','10'); shape.setAttribute('r',brushSizeValue/2); break;
     case 'square': shape=document.createElementNS(svgNS,'rect'); const offset=10-brushSizeValue/2; shape.setAttribute('x',offset); shape.setAttribute('y',offset); shape.setAttribute('width',brushSizeValue); shape.setAttribute('height',brushSizeValue); break;
-    case 'diamond': const half=brushSizeValue/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`10,${10-half} ${10+half},10 10,${10+half} ${10-half},10`); break;
-    case 'triangle': const h=brushSizeValue; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`10,${10-h/2} ${10+h/2},${10+h/2} ${10-h/2},${10+h/2}`); break;
+    case 'diamond': const half=brushSizeValue/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${10},${10-half} ${10+half},10 ${10},${10+half} ${10-half},10`); break;
+    case 'triangle': const h=brushSizeValue; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${10},${10-h/2} ${10+h/2},${10+h/2} ${10-h/2},${10+h/2}`); break;
   }
-  shape.setAttribute('fill','black');
-  s.appendChild(shape);
-  brushPreview.appendChild(s);
+  shape.setAttribute('fill','black'); s.appendChild(shape); brushPreview.appendChild(s);
 }
 updateBrushPreview();
 
@@ -218,30 +209,10 @@ document.getElementById('decreaseBrush').addEventListener('click', ()=>{ brushSi
 
 let pathsStack = { triangleLayer: [], signatureLayer: [] };
 
-function drawGrid(svg, spacing){
-  const vb=svg.viewBox.baseVal;
-  const gridLayer=document.createElementNS('http://www.w3.org/2000/svg','g');
-  for(let x=spacing;x<vb.width;x+=spacing){
-    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
-    l.setAttribute('x1',x); l.setAttribute('y1',0); l.setAttribute('x2',x); l.setAttribute('y2',vb.height); l.setAttribute('stroke','#ccc'); l.setAttribute('stroke-width','0.3'); gridLayer.appendChild(l);
-  }
-  for(let y=spacing;y<vb.height;y+=spacing){
-    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
-    l.setAttribute('x1',0); l.setAttribute('y1',y); l.setAttribute('x2',vb.width); l.setAttribute('y2',y); l.setAttribute('stroke','#ccc'); l.setAttribute('stroke-width','0.3'); gridLayer.appendChild(l);
-  }
-  svg.querySelector('g[id$="Grid"]').appendChild(gridLayer);
-}
-
-drawGrid(triangleSvg,10);
-drawGrid(signatureSvg,5);
-
 function enableDrawing(svg, layer, fixedStroke=null){
   let drawing=false;
   let currentStroke=[];
-
-  svg.addEventListener('pointerdown',e=>{
-    drawing=true; currentStroke=[]; drawPoint(svg,layer,e,fixedStroke,currentStroke); svg.setPointerCapture(e.pointerId);
-  });
+  svg.addEventListener('pointerdown',e=>{ drawing=true; currentStroke=[]; drawPoint(svg,layer,e,fixedStroke,currentStroke); svg.setPointerCapture(e.pointerId); });
   svg.addEventListener('pointermove',e=>{ if(drawing) drawPoint(svg,layer,e,fixedStroke,currentStroke); });
   svg.addEventListener('pointerup',()=>{ drawing=false; if(currentStroke.length) pathsStack[layer.id].push(currentStroke); });
   svg.addEventListener('pointerleave',()=>{ drawing=false; if(currentStroke.length) pathsStack[layer.id].push(currentStroke); });
@@ -270,10 +241,7 @@ const signatureSvg=document.getElementById('signatureSvg');
 enableDrawing(triangleSvg,triangleLayer);
 enableDrawing(signatureSvg,signatureLayer,1);
 
-function undo(layer){
-  const strokes=pathsStack[layer.id];
-  if(strokes.length){ const lastStroke=strokes.pop(); lastStroke.forEach(el=>layer.removeChild(el)); }
-}
+function undo(layer){ const strokes=pathsStack[layer.id]; if(strokes.length){ const lastStroke=strokes.pop(); lastStroke.forEach(el=>layer.removeChild(el)); } }
 function clearLayer(layer){ while(layer.firstChild) layer.removeChild(layer.firstChild); pathsStack[layer.id]=[]; }
 
 async function svgToPng(svg, excludeSelector=null){
