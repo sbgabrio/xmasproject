@@ -175,7 +175,9 @@ let pathsStack = { triangleLayer: [], signatureLayer: [] };
 
 function enableDrawing(svg, layer, clipPolygon=null, fixedStroke=null) {
   let drawing = false;
-  let path;
+  let polyline;
+  let points = [];
+
   function point(e) {
     const r = svg.getBoundingClientRect();
     const vb = svg.viewBox.baseVal;
@@ -183,6 +185,7 @@ function enableDrawing(svg, layer, clipPolygon=null, fixedStroke=null) {
   }
 
   function isInsidePolygon(p, polygonPoints){
+    if(!polygonPoints.length) return true;
     let x = p.x, y = p.y;
     let inside = false;
     for(let i=0,j=polygonPoints.length-1;i<polygonPoints.length;j=i++){
@@ -194,27 +197,30 @@ function enableDrawing(svg, layer, clipPolygon=null, fixedStroke=null) {
     return inside;
   }
 
-  let polygonPoints = clipPolygon ? clipPolygon.map(pt=>[pt.x,pt.y]):[];
+  let polygonPoints = clipPolygon ? clipPolygon.map(pt=>[pt.x,pt.y]) : [];
 
   svg.addEventListener('pointerdown', e => {
     const p = point(e);
-    if(polygonPoints.length && !isInsidePolygon(p, polygonPoints)) return;
+    if(!isInsidePolygon(p, polygonPoints)) return;
     drawing = true;
-    path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('class', 'draw-path');
-    const width = fixedStroke!==null ? fixedStroke : brush.value;
-    path.setAttribute('stroke-width', width + 'pt');
-    path.setAttribute('d', `M ${p.x} ${p.y}`);
-    layer.appendChild(path);
-    pathsStack[layer.id].push(path);
+    points = [`${p.x},${p.y}`];
+    polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    const width = fixedStroke !== null ? fixedStroke : brush.value;
+    polyline.setAttribute('stroke-width', width);
+    polyline.setAttribute('stroke', 'black');
+    polyline.setAttribute('fill', 'none');
+    polyline.setAttribute('points', points.join(' '));
+    layer.appendChild(polyline);
+    pathsStack[layer.id].push(polyline);
     svg.setPointerCapture(e.pointerId);
   });
 
   svg.addEventListener('pointermove', e => {
     if(!drawing) return;
     const p = point(e);
-    if(polygonPoints.length && !isInsidePolygon(p, polygonPoints)) return;
-    path.setAttribute('d', path.getAttribute('d') + ` L ${p.x} ${p.y}`);
+    if(!isInsidePolygon(p, polygonPoints)) return;
+    points.push(`${p.x},${p.y}`);
+    polyline.setAttribute('points', points.join(' '));
   });
 
   svg.addEventListener('pointerup', ()=>drawing=false);
