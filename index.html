@@ -120,15 +120,20 @@
     }
 
     .brush-btn {
-      font-size: 18px;
-      padding: 4px;
-      border-radius: 50%;
-      border: 1px solid #a80000;
-      background: white;
-      cursor: pointer;
+      width: 30px;
+      height: 30px;
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
+      border: 1px solid #a80000;
+      border-radius: 50%;
+      background: white;
+      padding: 0;
+    }
+
+    .brush-btn svg {
+      display: block;
     }
 
     #brushPreview {
@@ -152,11 +157,11 @@
 <div class="controls">
   <label>Brush Selector</label>
   <div id="brushOptions" style="display:flex; gap:10px; align-items:center;">
-    <button class="brush-btn" data-size="1">●</button>
-    <button class="brush-btn" data-size="3">●</button>
-    <button class="brush-btn" data-size="5">●</button>
-    <button class="brush-btn" data-size="8">●</button>
-    <button class="brush-btn" data-size="12">●</button>
+    <div class="brush-btn" data-size="1"><svg width="20" height="20"><circle cx="10" cy="10" r="1" fill="black"/></svg></div>
+    <div class="brush-btn" data-size="3"><svg width="20" height="20"><circle cx="10" cy="10" r="3" fill="black"/></svg></div>
+    <div class="brush-btn" data-size="5"><svg width="20" height="20"><circle cx="10" cy="10" r="5" fill="black"/></svg></div>
+    <div class="brush-btn" data-size="8"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="black"/></svg></div>
+    <div class="brush-btn" data-size="12"><svg width="20" height="20"><circle cx="10" cy="10" r="12" fill="black"/></svg></div>
     <button id="decreaseBrush">–</button>
     <button id="increaseBrush">+</button>
     <div id="brushPreview"></div>
