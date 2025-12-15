@@ -88,10 +88,10 @@ svg {
     display: inline-block;
     vertical-align: middle;
 }
-#previewContainer img {
+#previewContainer svg,img {
     max-width: 100%;
-    border: 1px solid #333;
     margin-top: 10px;
+    border: 1px solid #333;
 }
 </style>
 </head>
@@ -146,6 +146,7 @@ svg {
 <div class="button-group">
     <button onclick="submitForm()">Submit</button>
     <button onclick="previewDrawing()">Preview</button>
+    <button onclick="downloadPNG()">Download PNG</button>
 </div>
 <div id="previewContainer"></div>
 
@@ -267,14 +268,19 @@ enableDrawingMultiTouch(signatureSvg, signatureLayer, 1);
 function undo(layer){ const strokes=pathsStack[layer.id]; if(strokes.length){ const lastStroke=strokes.pop(); lastStroke.forEach(el=>layer.removeChild(el)); } }
 function clearLayer(layer){ while(layer.firstChild) layer.removeChild(layer.firstChild); pathsStack[layer.id]=[]; }
 
-async function svgToPng(svg, excludeSelector=null){
+async function svgToPng(svg, excludeSelector=null, scale=10){
     return new Promise(resolve=>{
-        const vb=svg.viewBox.baseVal; const clone=svg.cloneNode(true);
+        const vb=svg.viewBox.baseVal; 
+        const clone=svg.cloneNode(true);
         if(excludeSelector) clone.querySelectorAll(excludeSelector).forEach(n=>n.remove());
-        const xml=new XMLSerializer().serializeToString(clone); const img=new Image();
+        const xml=new XMLSerializer().serializeToString(clone);
+        const img=new Image();
         img.onload=()=>{
-            const c=document.createElement('canvas'); c.width=vb.width; c.height=vb.height;
-            const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); ctx.drawImage(img,0,0,vb.width,vb.height);
+            const c=document.createElement('canvas'); 
+            c.width=vb.width*scale; 
+            c.height=vb.height*scale;
+            const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+            ctx.scale(scale,scale); ctx.drawImage(img,0,0);
             resolve(c.toDataURL('image/png'));
         };
         img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));
@@ -290,29 +296,85 @@ async function submitForm(){
 }
 
 async function previewDrawing(){
-    const triData = await svgToPng(triangleSvg,'.triangle-outline');
-    const sigData = await svgToPng(signatureSvg);
+    const triData = await svgToPng(triangleSvg,'.triangle-outline',5); // high-res
+    const sigData = await svgToPng(signatureSvg, null, 5);
 
     const container = document.getElementById('previewContainer');
     container.innerHTML='';
 
-    const triDiv=document.createElement('div');
-    triDiv.style.position='relative';
-    triDiv.style.width='100%';
-    triDiv.style.maxWidth='500px';
-    triDiv.style.backgroundImage='url("https://www.sketchuptextureclub.com/public/texture_d/68-cherry-wood-fine-medium-color-texture-seamless-hr.jpg")';
-    triDiv.style.backgroundSize='cover';
-    triDiv.style.border='1px solid #333';
+    // Clipped triangle preview with wood texture
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const previewSVG = document.createElementNS(svgNS,'svg');
+    previewSVG.setAttribute('width','500'); 
+    previewSVG.setAttribute('height','600'); 
+    previewSVG.setAttribute('viewBox','0 0 121 146');
 
-    const triImg=document.createElement('img');
-    triImg.src=triData; triImg.style.width='100%'; triImg.style.display='block';
-    triDiv.appendChild(triImg);
+    const defs = document.createElementNS(svgNS,'defs');
+    const clip = document.createElementNS(svgNS,'clipPath');
+    clip.setAttribute('id','clipTrianglePreview');
+    const polygon = document.createElementNS(svgNS,'polygon');
+    polygon.setAttribute('points','60.5,0 121,146 0,146');
+    clip.appendChild(polygon);
+    defs.appendChild(clip);
+    previewSVG.appendChild(defs);
+
+    const bgImage = document.createElementNS(svgNS,'image');
+    bgImage.setAttributeNS('http://www.w3.org/1999/xlink','href',
+        'https://www.sketchuptextureclub.com/public/texture_d/68-cherry-wood-fine-medium-color-texture-seamless-hr.jpg');
+    bgImage.setAttribute('x','0'); bgImage.setAttribute('y','0');
+    bgImage.setAttribute('width','121'); bgImage.setAttribute('height','146');
+    bgImage.setAttribute('clip-path','url(#clipTrianglePreview)');
+    previewSVG.appendChild(bgImage);
+
+    const strokesImg = document.createElementNS(svgNS,'image');
+    strokesImg.setAttributeNS('http://www.w3.org/1999/xlink','href',triData);
+    strokesImg.setAttribute('x','0'); strokesImg.setAttribute('y','0');
+    strokesImg.setAttribute('width','121'); strokesImg.setAttribute('height','146');
+    strokesImg.setAttribute('clip-path','url(#clipTrianglePreview)');
+    previewSVG.appendChild(strokesImg);
 
     container.appendChild(document.createElement('h3')).textContent='Triangle Drawing Preview:';
-    container.appendChild(triDiv);
+    container.appendChild(previewSVG);
 
     container.appendChild(document.createElement('h3')).textContent='Signature Preview:';
     const sigImg=document.createElement('img'); sigImg.src=sigData; container.appendChild(sigImg);
+}
+
+async function downloadPNG(){
+    const triData = await svgToPng(triangleSvg,'.triangle-outline',10); // high-res for laser
+    const previewCanvas = document.createElement('canvas');
+    const scale = 10;
+    previewCanvas.width = 121*scale;
+    previewCanvas.height = 146*scale;
+    const ctx = previewCanvas.getContext('2d');
+
+    const img = new Image();
+    img.onload = ()=>{
+        // Draw wood texture clipped to triangle
+        const woodImg = new Image();
+        woodImg.crossOrigin="anonymous";
+        woodImg.onload=()=>{
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(60.5*scale,0);
+            ctx.lineTo(121*scale,146*scale);
+            ctx.lineTo(0,146*scale);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(woodImg,0,0,121*scale,146*scale);
+            ctx.drawImage(img,0,0,121*scale,146*scale);
+            ctx.restore();
+
+            const link = document.createElement('a');
+            link.href = previewCanvas.toDataURL('image/png');
+            link.download='triangle_drawing.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+        woodImg.src='https://www.sketchuptextureclub.com/public/texture_d/68-cherry-wood-fine-medium-color-texture-seamless-hr.jpg';
+    };
+    img.src = triData;
 }
 </script>
 </body>
