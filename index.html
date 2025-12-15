@@ -18,7 +18,7 @@ svg{touch-action:none;display:block;border-radius:10px;margin:10px 0;background:
 .signature-line{stroke:#006400;stroke-width:1;}
 .brush-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #a80000;border-radius:50%;background:white;}
 #brushPreview{display:inline-block;vertical-align:middle;}
-#previewContainer img, #previewContainer canvas{max-width:100%; border:1px solid #a80000; margin:10px 0;}
+#previewContainer img{max-width:100%; border:1px solid #a80000; margin:10px 0;}
 </style>
 </head>
 <body>
@@ -137,10 +137,10 @@ function enableSmoothDrawing(svg, layer, fixedStroke=null, clipTriangle=null){
         const x=(e.clientX-r.left)*(vb.width/r.width); const y=(e.clientY-r.top)*(vb.height/r.height);
         if(clipTriangle && !pointInTriangle(x,y,65,5,125,155,5,155)) return;
         if(lastPoint){
+            const midX=(lastPoint.x+x)/2, midY=(lastPoint.y+y)/2;
             let d=path.getAttribute('d');
-            const steps=smoothingLevel;
-            for(let i=1;i<=steps;i++){
-                const t=i/(steps+1);
+            for(let i=1;i<=smoothingLevel;i++){
+                const t=i/(smoothingLevel+1);
                 const interpX=lastPoint.x*(1-t)+x*t; const interpY=lastPoint.y*(1-t)+y*t;
                 d+=` L ${interpX} ${interpY}`;
             }
@@ -194,23 +194,29 @@ async function previewDrawing(){
 
     const previewCanvas=document.createElement('canvas'); 
     const scale=5;
-    previewCanvas.width=130*scale; previewCanvas.height=160*scale;
+    previewCanvas.width=130*scale; 
+    previewCanvas.height=160*scale;
     const ctx=previewCanvas.getContext('2d');
 
     const woodImg=new Image(); 
     woodImg.crossOrigin="anonymous";
     woodImg.onload=()=>{
         ctx.save();
-        ctx.beginPath(); ctx.moveTo(65*scale,5*scale); ctx.lineTo(125*scale,155*scale); ctx.lineTo(5*scale,155*scale); ctx.closePath(); 
+        ctx.beginPath(); 
+        ctx.moveTo(65*scale,5*scale); 
+        ctx.lineTo(125*scale,155*scale); 
+        ctx.lineTo(5*scale,155*scale); 
+        ctx.closePath(); 
         ctx.clip();
         ctx.drawImage(woodImg,0,0,130*scale,160*scale);
-        
+
         const strokesImg=new Image();
+        strokesImg.crossOrigin="anonymous";
         strokesImg.onload=()=>{
             ctx.drawImage(strokesImg,0,0,130*scale,160*scale);
             container.appendChild(previewCanvas);
-            
-            // Also show signature
+
+            // Signature preview below
             const sigImg=document.createElement('img'); sigImg.src=sigData; container.appendChild(sigImg);
         };
         strokesImg.src=triData;
@@ -224,6 +230,7 @@ async function downloadPNG(){
     canvas.width=130*scale; canvas.height=160*scale;
     const ctx=canvas.getContext('2d');
     const strokesImg=new Image();
+    strokesImg.crossOrigin="anonymous";
     strokesImg.onload=()=>{
         ctx.drawImage(strokesImg,0,0,130*scale,160*scale);
         const link=document.createElement('a'); link.href=canvas.toDataURL('image/png'); link.download='triangle_drawing.png';
