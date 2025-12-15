@@ -56,6 +56,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     svg {
@@ -117,6 +118,28 @@
       border: 1px solid #333;
       margin-top: 10px;
     }
+
+    .brush-btn {
+      font-size: 18px;
+      padding: 4px;
+      border-radius: 50%;
+      border: 1px solid #a80000;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #brushPreview {
+      border: 1px solid #333;
+      border-radius: 50%;
+      display: inline-block;
+      background: black;
+      width: 5px;
+      height: 5px;
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body>
@@ -127,9 +150,17 @@
 <input id="typedName" type="text" placeholder="Type your name" />
 
 <div class="controls">
-  <label>Brush size</label>
-  <input id="brushSize" type="range" min="1" max="15" step="0.5" value="5" />
-  <span id="brushValue">5 pt</span>
+  <label>Brush Selector</label>
+  <div id="brushOptions" style="display:flex; gap:10px; align-items:center;">
+    <button class="brush-btn" data-size="1">●</button>
+    <button class="brush-btn" data-size="3">●</button>
+    <button class="brush-btn" data-size="5">●</button>
+    <button class="brush-btn" data-size="8">●</button>
+    <button class="brush-btn" data-size="12">●</button>
+    <button id="decreaseBrush">–</button>
+    <button id="increaseBrush">+</button>
+    <div id="brushPreview"></div>
+  </div>
 </div>
 
 <label>Draw inside the triangle</label>
@@ -167,9 +198,30 @@
 <script>
 emailjs.init('2MRCF5mqDT4FkYDi-');
 
-const brush = document.getElementById('brushSize');
-const brushValue = document.getElementById('brushValue');
-brush.oninput = () => brushValue.textContent = brush.value + ' pt';
+let brushSizeValue = 5;
+const brushPreview = document.getElementById('brushPreview');
+function updateBrushPreview(){
+  brushPreview.style.width = brushSizeValue + 'px';
+  brushPreview.style.height = brushSizeValue + 'px';
+}
+updateBrushPreview();
+
+document.querySelectorAll('.brush-btn').forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    brushSizeValue = parseFloat(btn.dataset.size);
+    updateBrushPreview();
+  });
+});
+
+document.getElementById('increaseBrush').addEventListener('click', ()=>{
+  brushSizeValue = Math.min(15, brushSizeValue + 0.5);
+  updateBrushPreview();
+});
+
+document.getElementById('decreaseBrush').addEventListener('click', ()=>{
+  brushSizeValue = Math.max(1, brushSizeValue - 0.5);
+  updateBrushPreview();
+});
 
 let pathsStack = { triangleLayer: [], signatureLayer: [] };
 
@@ -178,47 +230,46 @@ function enableDrawing(svg, layer, clipPolygon=null, fixedStroke=null) {
   let polyline;
   let points = [];
 
-  function point(e) {
+  function point(e){
     const r = svg.getBoundingClientRect();
     const vb = svg.viewBox.baseVal;
-    return {x: (e.clientX - r.left)*(vb.width/r.width), y: (e.clientY - r.top)*(vb.height/r.height)};
+    return {x:(e.clientX-r.left)*(vb.width/r.width), y:(e.clientY-r.top)*(vb.height/r.height)};
   }
 
   function isInsidePolygon(p, polygonPoints){
     if(!polygonPoints.length) return true;
-    let x = p.x, y = p.y;
-    let inside = false;
+    let x=p.x,y=p.y,inside=false;
     for(let i=0,j=polygonPoints.length-1;i<polygonPoints.length;j=i++){
-      let xi = polygonPoints[i][0], yi = polygonPoints[i][1];
-      let xj = polygonPoints[j][0], yj = polygonPoints[j][1];
-      let intersect = ((yi>y)!=(yj>y)) && (x<(xj-xi)*(y-yi)/(yj-yi)+xi);
-      if(intersect) inside = !inside;
+      let xi=polygonPoints[i][0],yi=polygonPoints[i][1];
+      let xj=polygonPoints[j][0],yj=polygonPoints[j][1];
+      let intersect=((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi);
+      if(intersect) inside=!inside;
     }
     return inside;
   }
 
   let polygonPoints = clipPolygon ? clipPolygon.map(pt=>[pt.x,pt.y]) : [];
 
-  svg.addEventListener('pointerdown', e => {
+  svg.addEventListener('pointerdown', e=>{
     const p = point(e);
-    if(!isInsidePolygon(p, polygonPoints)) return;
+    if(!isInsidePolygon(p,polygonPoints)) return;
     drawing = true;
     points = [`${p.x},${p.y}`];
-    polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    const width = fixedStroke !== null ? fixedStroke : brush.value;
+    polyline = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    const width = fixedStroke!==null?fixedStroke:brushSizeValue;
     polyline.setAttribute('stroke-width', width);
-    polyline.setAttribute('stroke', 'black');
-    polyline.setAttribute('fill', 'none');
+    polyline.setAttribute('stroke','black');
+    polyline.setAttribute('fill','none');
     polyline.setAttribute('points', points.join(' '));
     layer.appendChild(polyline);
     pathsStack[layer.id].push(polyline);
     svg.setPointerCapture(e.pointerId);
   });
 
-  svg.addEventListener('pointermove', e => {
+  svg.addEventListener('pointermove', e=>{
     if(!drawing) return;
-    const p = point(e);
-    if(!isInsidePolygon(p, polygonPoints)) return;
+    const p=point(e);
+    if(!isInsidePolygon(p,polygonPoints)) return;
     points.push(`${p.x},${p.y}`);
     polyline.setAttribute('points', points.join(' '));
   });
@@ -238,29 +289,25 @@ enableDrawing(signatureSvg, signatureLayer, null, 1);
 
 function undo(layer){
   const arr = pathsStack[layer.id];
-  if(arr.length>0){
-    layer.removeChild(arr.pop());
-  }
+  if(arr.length>0) layer.removeChild(arr.pop());
 }
 
 function clearLayer(layer){
-  while(layer.firstChild){
-    layer.removeChild(layer.firstChild);
-  }
-  pathsStack[layer.id] = [];
+  while(layer.firstChild) layer.removeChild(layer.firstChild);
+  pathsStack[layer.id]=[];
 }
 
 async function svgToPng(svg, excludeSelector=null){
   return new Promise(resolve=>{
-    const vb = svg.viewBox.baseVal;
-    const clone = svg.cloneNode(true);
-    if(excludeSelector) clone.querySelectorAll(excludeSelector).forEach(n => n.remove());
-    const xml = new XMLSerializer().serializeToString(clone);
-    const img = new Image();
-    img.onload = ()=>{
-      const c = document.createElement('canvas');
-      c.width = vb.width; c.height = vb.height;
-      const ctx = c.getContext('2d');
+    const vb=svg.viewBox.baseVal;
+    const clone=svg.cloneNode(true);
+    if(excludeSelector) clone.querySelectorAll(excludeSelector).forEach(n=>n.remove());
+    const xml=new XMLSerializer().serializeToString(clone);
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      c.width=vb.width;c.height=vb.height;
+      const ctx=c.getContext('2d');
       ctx.clearRect(0,0,c.width,c.height);
       ctx.drawImage(img,0,0,vb.width,vb.height);
       resolve(c.toDataURL('image/png'));
@@ -272,20 +319,17 @@ async function svgToPng(svg, excludeSelector=null){
 async function submitForm(){
   const name = typedName.value.trim();
   if(!name) return alert('Type your name');
-  const tri = await svgToPng(triangleSvg, '.triangle-outline');
+  const tri = await svgToPng(triangleSvg,'.triangle-outline');
   const sig = await svgToPng(signatureSvg);
   emailjs.send('service_8s9eadc','template_jm26nk5',{student_name:name,triangle_image:tri,signature_image:sig,to_email:'stevegabrio@gmail.com'});
   alert('Submitted!');
 }
 
 async function previewDrawing(){
-  const tri = await svgToPng(triangleSvg, '.triangle-outline');
+  const tri = await svgToPng(triangleSvg,'.triangle-outline');
   const sig = await svgToPng(signatureSvg);
-  const container = document.getElementById('previewContainer');
-  container.innerHTML = '<h3>Triangle Drawing Preview:</h3>' +
-                        '<img src="'+tri+'" alt="Triangle Drawing" />' +
-                        '<h3>Signature Preview:</h3>' +
-                        '<img src="'+sig+'" alt="Signature" />';
+  const container=document.getElementById('previewContainer');
+  container.innerHTML='<h3>Triangle Drawing Preview:</h3><img src="'+tri+'" alt="Triangle Drawing" /><h3>Signature Preview:</h3><img src="'+sig+'" alt="Signature" />';
 }
 </script>
 </body>
