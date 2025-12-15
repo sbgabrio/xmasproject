@@ -64,6 +64,7 @@
       stroke-width: 5pt;
       stroke-linecap: round;
       stroke-linejoin: round;
+      pointer-events: none; /* prevent paths from blocking drawing */
     }
 
     .signature {
@@ -182,6 +183,7 @@
       line.setAttribute('y2', vb.height);
       line.setAttribute('stroke', '#ccc');
       line.setAttribute('stroke-width', '0.3');
+      line.setAttribute('pointer-events','none');
       layer.appendChild(line);
     }
     for (let y = spacing; y < vb.height; y += spacing) {
@@ -192,6 +194,7 @@
       line.setAttribute('y2', y);
       line.setAttribute('stroke', '#ccc');
       line.setAttribute('stroke-width', '0.3');
+      line.setAttribute('pointer-events','none');
       layer.appendChild(line);
     }
   }
