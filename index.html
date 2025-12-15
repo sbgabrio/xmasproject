@@ -74,14 +74,6 @@
       pointer-events: none;
     }
 
-    .draw-path {
-      fill: none;
-      stroke: black;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      pointer-events: none;
-    }
-
     .triangle {
       width: 100%;
       height: auto;
@@ -157,11 +149,10 @@
 <div class="controls">
   <label>Brush Selector</label>
   <div id="brushOptions" style="display:flex; gap:10px; align-items:center;">
-    <div class="brush-btn" data-size="1"><svg width="20" height="20"><circle cx="10" cy="10" r="1" fill="black"/></svg></div>
-    <div class="brush-btn" data-size="3"><svg width="20" height="20"><circle cx="10" cy="10" r="3" fill="black"/></svg></div>
-    <div class="brush-btn" data-size="5"><svg width="20" height="20"><circle cx="10" cy="10" r="5" fill="black"/></svg></div>
-    <div class="brush-btn" data-size="8"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="black"/></svg></div>
-    <div class="brush-btn" data-size="12"><svg width="20" height="20"><circle cx="10" cy="10" r="12" fill="black"/></svg></div>
+    <div class="brush-btn" data-size="5" data-shape="circle"><svg width="20" height="20"><circle cx="10" cy="10" r="5" fill="black"/></svg></div>
+    <div class="brush-btn" data-size="5" data-shape="square"><svg width="20" height="20"><rect x="5" y="5" width="10" height="10" fill="black"/></svg></div>
+    <div class="brush-btn" data-size="5" data-shape="diamond"><svg width="20" height="20"><polygon points="10,2 18,10 10,18 2,10" fill="black"/></svg></div>
+    <div class="brush-btn" data-size="5" data-shape="triangle"><svg width="20" height="20"><polygon points="10,2 18,18 2,18" fill="black"/></svg></div>
     <button id="decreaseBrush">–</button>
     <button id="increaseBrush">+</button>
     <div id="brushPreview"></div>
@@ -204,16 +195,19 @@
 emailjs.init('2MRCF5mqDT4FkYDi-');
 
 let brushSizeValue = 5;
+let brushShape = 'circle';
 const brushPreview = document.getElementById('brushPreview');
 function updateBrushPreview(){
   brushPreview.style.width = brushSizeValue + 'px';
   brushPreview.style.height = brushSizeValue + 'px';
+  brushPreview.style.borderRadius = brushShape === 'circle' ? '50%' : '0';
 }
 updateBrushPreview();
 
 document.querySelectorAll('.brush-btn').forEach(btn => {
   btn.addEventListener('click', ()=>{
     brushSizeValue = parseFloat(btn.dataset.size);
+    brushShape = btn.dataset.shape;
     updateBrushPreview();
   });
 });
@@ -232,55 +226,57 @@ let pathsStack = { triangleLayer: [], signatureLayer: [] };
 
 function enableDrawing(svg, layer, clipPolygon=null, fixedStroke=null) {
   let drawing = false;
-  let polyline;
-  let points = [];
-
-  function point(e){
-    const r = svg.getBoundingClientRect();
-    const vb = svg.viewBox.baseVal;
-    return {x:(e.clientX-r.left)*(vb.width/r.width), y:(e.clientY-r.top)*(vb.height/r.height)};
-  }
-
-  function isInsidePolygon(p, polygonPoints){
-    if(!polygonPoints.length) return true;
-    let x=p.x,y=p.y,inside=false;
-    for(let i=0,j=polygonPoints.length-1;i<polygonPoints.length;j=i++){
-      let xi=polygonPoints[i][0],yi=polygonPoints[i][1];
-      let xj=polygonPoints[j][0],yj=polygonPoints[j][1];
-      let intersect=((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi);
-      if(intersect) inside=!inside;
-    }
-    return inside;
-  }
-
-  let polygonPoints = clipPolygon ? clipPolygon.map(pt=>[pt.x,pt.y]) : [];
 
   svg.addEventListener('pointerdown', e=>{
-    const p = point(e);
-    if(!isInsidePolygon(p,polygonPoints)) return;
     drawing = true;
-    points = [`${p.x},${p.y}`];
-    polyline = document.createElementNS('http://www.w3.org/2000/svg','polyline');
-    const width = fixedStroke!==null?fixedStroke:brushSizeValue;
-    polyline.setAttribute('stroke-width', width);
-    polyline.setAttribute('stroke','black');
-    polyline.setAttribute('fill','none');
-    polyline.setAttribute('points', points.join(' '));
-    layer.appendChild(polyline);
-    pathsStack[layer.id].push(polyline);
+    drawPoint(svg, layer, e, fixedStroke);
     svg.setPointerCapture(e.pointerId);
   });
 
   svg.addEventListener('pointermove', e=>{
     if(!drawing) return;
-    const p=point(e);
-    if(!isInsidePolygon(p,polygonPoints)) return;
-    points.push(`${p.x},${p.y}`);
-    polyline.setAttribute('points', points.join(' '));
+    drawPoint(svg, layer, e, fixedStroke);
   });
 
   svg.addEventListener('pointerup', ()=>drawing=false);
   svg.addEventListener('pointerleave', ()=>drawing=false);
+}
+
+function drawPoint(svg, layer, e, fixedStroke){
+  const r = svg.getBoundingClientRect();
+  const vb = svg.viewBox.baseVal;
+  const x = (e.clientX - r.left)*(vb.width/r.width);
+  const y = (e.clientY - r.top)*(vb.height/r.height);
+  const size = fixedStroke!==null?fixedStroke:brushSizeValue;
+  let shape;
+  switch(brushShape){
+    case 'circle':
+      shape = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      shape.setAttribute('cx', x);
+      shape.setAttribute('cy', y);
+      shape.setAttribute('r', size/2);
+      break;
+    case 'square':
+      shape = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      shape.setAttribute('x', x - size/2);
+      shape.setAttribute('y', y - size/2);
+      shape.setAttribute('width', size);
+      shape.setAttribute('height', size);
+      break;
+    case 'diamond':
+      shape = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      const half=size/2;
+      shape.setAttribute('points', `${x},${y-half} ${x+half},${y} ${x},${y+half} ${x-half},${y}`);
+      break;
+    case 'triangle':
+      shape = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      const h=size;
+      shape.setAttribute('points', `${x},${y-h/2} ${x+h/2},${y+h/2} ${x-h/2},${y+h/2}`);
+      break;
+  }
+  shape.setAttribute('fill','black');
+  layer.appendChild(shape);
+  pathsStack[layer.id].push(shape);
 }
 
 const triangleLayer = document.getElementById('triangleLayer');
@@ -289,7 +285,7 @@ const trianglePolygon = [{x:60.5,y:0},{x:121,y:146},{x:0,y:146}];
 const signatureLayer = document.getElementById('signatureLayer');
 const signatureSvg = document.getElementById('signatureSvg');
 
-enableDrawing(triangleSvg, triangleLayer, trianglePolygon);
+enableDrawing(triangleSvg, triangleLayer);
 enableDrawing(signatureSvg, signatureLayer, null, 1);
 
 function undo(layer){
