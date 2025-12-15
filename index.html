@@ -18,6 +18,7 @@ svg{touch-action:none;display:block;border-radius:10px;margin:10px 0;background:
 .signature-line{stroke:#006400;stroke-width:1;}
 .brush-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #a80000;border-radius:50%;background:white;}
 #brushPreview{display:inline-block;vertical-align:middle;}
+#previewContainer img{max-width:100%; border:1px solid #a80000; margin:10px 0;}
 </style>
 </head>
 <body>
@@ -77,7 +78,6 @@ svg{touch-action:none;display:block;border-radius:10px;margin:10px 0;background:
 
 <script>
 emailjs.init('2MRCF5mqDT4FkYDi-');
-
 let brushSizeValue=5, brushShape='circle', smoothingLevel=5;
 const brushPreview=document.getElementById('brushPreview');
 
@@ -93,41 +93,18 @@ function updateBrushPreview(){
         case 'triangle': const h=brushSizeValue; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${20},${20-h/2} ${20+h/2},${20+h/2} ${20-h/2},${20+h/2}`); break;
     }
     shape.setAttribute('fill','black'); s.appendChild(shape);
-
-    // Add smoothing preview line
-    const smoothLine=document.createElementNS(svgNS,'path');
-    let d='M5,30';
-    for(let i=0;i<35;i+=5){
-        const y=30-Math.sin(i/35*Math.PI*smoothingLevel/10)*10;
-        d+=` L ${5+i},${y}`;
-    }
-    smoothLine.setAttribute('d',d);
-    smoothLine.setAttribute('stroke','red');
-    smoothLine.setAttribute('stroke-width','1');
-    smoothLine.setAttribute('fill','none');
-    s.appendChild(smoothLine);
-
     brushPreview.appendChild(s);
 }
 updateBrushPreview();
-
-document.querySelectorAll('.brush-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-        brushSizeValue=parseFloat(btn.dataset.size);
-        brushShape=btn.dataset.shape;
-        updateBrushPreview();
-    });
-});
+document.querySelectorAll('.brush-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    brushSizeValue=parseFloat(btn.dataset.size); brushShape=btn.dataset.shape; updateBrushPreview();
+}));
 document.getElementById('increaseBrush').addEventListener('click',()=>{brushSizeValue=Math.min(15,brushSizeValue+0.5); updateBrushPreview();});
 document.getElementById('decreaseBrush').addEventListener('click',()=>{brushSizeValue=Math.max(1,brushSizeValue-0.5); updateBrushPreview();});
-
-document.querySelectorAll('.smooth-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-        smoothingLevel=parseFloat(btn.dataset.smoothing);
-        document.getElementById('currentSmoothing').textContent=btn.textContent;
-        updateBrushPreview();
-    });
-});
+document.querySelectorAll('.smooth-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    smoothingLevel=parseFloat(btn.dataset.smoothing); document.getElementById('currentSmoothing').textContent=btn.textContent;
+    updateBrushPreview();
+}));
 
 let pathsStack={ triangleLayer:[], signatureLayer:[] };
 function pointInTriangle(px, py, ax, ay, bx, by, cx, cy){
@@ -150,11 +127,9 @@ function enableSmoothDrawing(svg, layer, fixedStroke=null, clipTriangle=null){
         if(clipTriangle && !pointInTriangle(x,y,65,5,125,155,5,155)) return;
         path=document.createElementNS(svgNS,'path');
         path.setAttribute('stroke-linecap','round'); path.setAttribute('stroke-linejoin','round'); path.setAttribute('fill','none');
-        path.setAttribute('stroke','black');
-        path.setAttribute('stroke-width',(fixedStroke!==null?fixedStroke:brushSizeValue)+'pt');
+        path.setAttribute('stroke','black'); path.setAttribute('stroke-width',(fixedStroke!==null?fixedStroke:brushSizeValue)+'pt');
         path.setAttribute('d',`M ${x} ${y}`);
-        layer.appendChild(path);
-        lastPoint={x,y};
+        layer.appendChild(path); lastPoint={x,y};
     });
     svg.addEventListener('pointermove', e=>{
         if(!path) return;
@@ -166,8 +141,7 @@ function enableSmoothDrawing(svg, layer, fixedStroke=null, clipTriangle=null){
             let d=path.getAttribute('d');
             for(let i=1;i<=smoothingLevel;i++){
                 const t=i/(smoothingLevel+1);
-                const interpX=lastPoint.x*(1-t)+x*t;
-                const interpY=lastPoint.y*(1-t)+y*t;
+                const interpX=lastPoint.x*(1-t)+x*t; const interpY=lastPoint.y*(1-t)+y*t;
                 d+=` L ${interpX} ${interpY}`;
             }
             path.setAttribute('d',d);
@@ -196,14 +170,10 @@ async function svgToPng(svg, excludeSelector=null, scale=10){
         if(excludeSelector) clone.querySelectorAll(excludeSelector).forEach(n=>n.remove());
         const xml=new XMLSerializer().serializeToString(clone);
         const img=new Image();
-        img.onload=()=>{
-            const c=document.createElement('canvas'); 
-            c.width=vb.width*scale; 
-            c.height=vb.height*scale;
-            const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
-            ctx.scale(scale,scale); ctx.drawImage(img,0,0);
-            resolve(c.toDataURL('image/png'));
-        };
+        img.crossOrigin="anonymous";
+        img.onload=()=>{ const c=document.createElement('canvas'); c.width=vb.width*scale; c.height=vb.height*scale;
+            const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); ctx.scale(scale,scale); ctx.drawImage(img,0,0);
+            resolve(c.toDataURL('image/png'));};
         img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));
     });
 }
@@ -221,32 +191,18 @@ async function previewDrawing(){
     const sigData = await svgToPng(signatureSvg, null, 5);
     const container = document.getElementById('previewContainer');
     container.innerHTML='';
-
-    const previewCanvas=document.createElement('canvas');
-    const scale=5;
+    const previewCanvas=document.createElement('canvas'); const scale=5;
     previewCanvas.width=130*scale; previewCanvas.height=160*scale;
     const ctx=previewCanvas.getContext('2d');
-
-    const woodImg=new Image();
-    woodImg.crossOrigin="anonymous";
+    const woodImg=new Image(); woodImg.crossOrigin="anonymous";
     woodImg.onload=()=>{
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(65*scale,5*scale); ctx.lineTo(125*scale,155*scale); ctx.lineTo(5*scale,155*scale); ctx.closePath();
-        ctx.clip();
+        ctx.save(); ctx.beginPath(); ctx.moveTo(65*scale,5*scale); ctx.lineTo(125*scale,155*scale); ctx.lineTo(5*scale,155*scale); ctx.closePath(); ctx.clip();
         ctx.drawImage(woodImg,0,0,130*scale,160*scale);
-
         const strokesImg=new Image();
-        strokesImg.onload=()=>{
-            ctx.drawImage(strokesImg,0,0,130*scale,160*scale);
-            container.appendChild(document.createElement('h3')).textContent='Triangle Drawing Preview:';
-            container.appendChild(previewCanvas);
-        };
+        strokesImg.onload=()=>{ ctx.drawImage(strokesImg,0,0,130*scale,160*scale); container.appendChild(previewCanvas); };
         strokesImg.src=triData;
     };
     woodImg.src='https://www.sketchuptextureclub.com/public/texture_d/68-cherry-wood-fine-medium-color-texture-seamless-hr.jpg';
-
-    container.appendChild(document.createElement('h3')).textContent='Signature Preview:';
     const sigImg=document.createElement('img'); sigImg.src=sigData; container.appendChild(sigImg);
 }
 
@@ -255,17 +211,12 @@ async function downloadPNG(){
     const canvas=document.createElement('canvas'); const scale=10;
     canvas.width=130*scale; canvas.height=160*scale;
     const ctx=canvas.getContext('2d');
-    const woodImg=new Image();
-    woodImg.crossOrigin="anonymous";
+    const woodImg=new Image(); woodImg.crossOrigin="anonymous";
     woodImg.onload=()=>{
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(65*scale,5*scale); ctx.lineTo(125*scale,155*scale); ctx.lineTo(5*scale,155*scale); ctx.closePath();
-        ctx.clip();
+        ctx.save(); ctx.beginPath(); ctx.moveTo(65*scale,5*scale); ctx.lineTo(125*scale,155*scale); ctx.lineTo(5*scale,155*scale); ctx.closePath(); ctx.clip();
         ctx.drawImage(woodImg,0,0,130*scale,160*scale);
         const strokesImg=new Image();
-        strokesImg.onload=()=>{
-            ctx.drawImage(strokesImg,0,0,130*scale,160*scale);
+        strokesImg.onload=()=>{ ctx.drawImage(strokesImg,0,0,130*scale,160*scale);
             const link=document.createElement('a'); link.href=canvas.toDataURL('image/png'); link.download='triangle_drawing.png';
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         };
