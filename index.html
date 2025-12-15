@@ -5,20 +5,19 @@
 <title>Triangle Drawing Submission</title>
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <style>
-body { padding: 20mm; font-family: 'Comic Sans MS', sans-serif; background: linear-gradient(to bottom, #fff9f0, #ffe6e6); color: #333; }
-h2 { text-align: center; color: #a80000; text-shadow:1px 1px #fff; }
-label { font-weight: bold; display: block; margin-top: 12px; color: #a80000; }
-input[type="text"] { width:100%; font-size:16px; padding:6px; border:2px solid #a80000; border-radius:5px; }
-button { margin-top:10px; padding:8px 16px; font-size:16px; cursor:pointer; background-color:#a80000; color:white; border:none; border-radius:8px; }
-.controls, .button-group { display:flex; gap:10px; margin-top:5px; flex-wrap:wrap; }
-svg { touch-action:none; display:block; border-radius:10px; margin:10px 0; background:rgba(255,255,255,0.8); }
-.triangle-outline { fill:none; stroke:#006400; stroke-width:5pt; pointer-events:none; }
-.triangle { width:100%; max-height:600px; border:2px solid #006400; position:relative; }
-.signature { width:121mm; height:40mm; border:2px solid #006400; }
-.signature-line { stroke:#006400; stroke-width:1; }
-.brush-btn { width:30px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid #a80000; border-radius:50%; background:white; }
-#brushPreview { display:inline-block; vertical-align:middle; }
-#previewContainer svg,img { max-width:100%; margin-top:10px; border:1px solid #333; }
+body { padding:20mm; font-family:'Comic Sans MS', sans-serif; background:linear-gradient(to bottom,#fff9f0,#ffe6e6); color:#333;}
+h2{text-align:center;color:#a80000;text-shadow:1px 1px #fff;}
+label{font-weight:bold;display:block;margin-top:12px;color:#a80000;}
+input[type="text"]{width:100%; font-size:16px;padding:6px;border:2px solid #a80000;border-radius:5px;}
+button{margin-top:10px;padding:8px 16px;font-size:16px;cursor:pointer;background-color:#a80000;color:white;border:none;border-radius:8px;}
+.controls, .button-group { display:flex; gap:10px; margin-top:5px; flex-wrap:wrap; align-items:center;}
+svg{touch-action:none;display:block;border-radius:10px;margin:10px 0;background:rgba(255,255,255,0.8);}
+.triangle-outline{fill:none;stroke:#006400;stroke-width:5pt;pointer-events:none;}
+.triangle{width:100%;max-height:600px;border:2px solid #006400;position:relative;}
+.signature{width:121mm;height:40mm;border:2px solid #006400;}
+.signature-line{stroke:#006400;stroke-width:1;}
+.brush-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #a80000;border-radius:50%;background:white;}
+#brushPreview{display:inline-block;vertical-align:middle;}
 </style>
 </head>
 <body>
@@ -39,6 +38,14 @@ svg { touch-action:none; display:block; border-radius:10px; margin:10px 0; backg
 <button id="increaseBrush">+</button>
 <div id="brushPreview"></div>
 </div>
+</div>
+
+<div class="controls">
+<label>Smoothing Level</label>
+<button data-smoothing="2" class="smooth-btn">Low</button>
+<button data-smoothing="5" class="smooth-btn">Medium</button>
+<button data-smoothing="10" class="smooth-btn">High</button>
+<span id="currentSmoothing" style="margin-left:10px;">Medium</span>
 </div>
 
 <label>Draw inside the triangle</label>
@@ -71,70 +78,104 @@ svg { touch-action:none; display:block; border-radius:10px; margin:10px 0; backg
 <script>
 emailjs.init('2MRCF5mqDT4FkYDi-');
 
-let brushSizeValue=5, brushShape='circle';
+let brushSizeValue=5, brushShape='circle', smoothingLevel=5;
 const brushPreview=document.getElementById('brushPreview');
+
 function updateBrushPreview(){
     brushPreview.innerHTML='';
     const svgNS='http://www.w3.org/2000/svg';
-    const s=document.createElementNS(svgNS,'svg'); s.setAttribute('width','20'); s.setAttribute('height','20');
+    const s=document.createElementNS(svgNS,'svg'); s.setAttribute('width','40'); s.setAttribute('height','40');
     let shape;
     switch(brushShape){
-        case 'circle': shape=document.createElementNS(svgNS,'circle'); shape.setAttribute('cx','10'); shape.setAttribute('cy','10'); shape.setAttribute('r',brushSizeValue/2); break;
-        case 'square': shape=document.createElementNS(svgNS,'rect'); const offset=10-brushSizeValue/2; shape.setAttribute('x',offset); shape.setAttribute('y',offset); shape.setAttribute('width',brushSizeValue); shape.setAttribute('height',brushSizeValue); break;
-        case 'diamond': const half=brushSizeValue/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${10},${10-half} ${10+half},10 ${10},${10+half} ${10-half},10`); break;
-        case 'triangle': const h=brushSizeValue; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${10},${10-h/2} ${10+h/2},${10+h/2} ${10-h/2},${10+h/2}`); break;
+        case 'circle': shape=document.createElementNS(svgNS,'circle'); shape.setAttribute('cx','20'); shape.setAttribute('cy','20'); shape.setAttribute('r',brushSizeValue/2); break;
+        case 'square': shape=document.createElementNS(svgNS,'rect'); const offset=20-brushSizeValue/2; shape.setAttribute('x',offset); shape.setAttribute('y',offset); shape.setAttribute('width',brushSizeValue); shape.setAttribute('height',brushSizeValue); break;
+        case 'diamond': const half=brushSizeValue/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${20},${20-half} ${20+half},20 ${20},${20+half} ${20-half},20`); break;
+        case 'triangle': const h=brushSizeValue; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${20},${20-h/2} ${20+h/2},${20+h/2} ${20-h/2},${20+h/2}`); break;
     }
-    shape.setAttribute('fill','black'); s.appendChild(shape); brushPreview.appendChild(s);
+    shape.setAttribute('fill','black'); s.appendChild(shape);
+
+    // Add smoothing preview line
+    const smoothLine=document.createElementNS(svgNS,'path');
+    let d='M5,30';
+    for(let i=0;i<35;i+=5){
+        const y=30-Math.sin(i/35*Math.PI*smoothingLevel/10)*10;
+        d+=` L ${5+i},${y}`;
+    }
+    smoothLine.setAttribute('d',d);
+    smoothLine.setAttribute('stroke','red');
+    smoothLine.setAttribute('stroke-width','1');
+    smoothLine.setAttribute('fill','none');
+    s.appendChild(smoothLine);
+
+    brushPreview.appendChild(s);
 }
 updateBrushPreview();
-document.querySelectorAll('.brush-btn').forEach(btn=>{btn.addEventListener('click',()=>{brushSizeValue=parseFloat(btn.dataset.size); brushShape=btn.dataset.shape; updateBrushPreview();});});
+
+document.querySelectorAll('.brush-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        brushSizeValue=parseFloat(btn.dataset.size);
+        brushShape=btn.dataset.shape;
+        updateBrushPreview();
+    });
+});
 document.getElementById('increaseBrush').addEventListener('click',()=>{brushSizeValue=Math.min(15,brushSizeValue+0.5); updateBrushPreview();});
 document.getElementById('decreaseBrush').addEventListener('click',()=>{brushSizeValue=Math.max(1,brushSizeValue-0.5); updateBrushPreview();});
 
-let pathsStack={ triangleLayer:[], signatureLayer:[] };
-function pointInTriangle(px, py, ax, ay, bx, by, cx, cy){ const v0x=cx-ax, v0y=cy-ay; const v1x=bx-ax, v1y=by-ay; const v2x=px-ax, v2y=py-ay; const dot00=v0x*v0x+v0y*v0y; const dot01=v0x*v1x+v0y*v1y; const dot02=v0x*v2x+v0y*v2y; const dot11=v1x*v1x+v1y*v1y; const dot12=v1x*v2x+v1y*v2y; const invDenom=1/(dot00*dot11-dot01*dot01); const u=(dot11*dot02-dot01*dot12)*invDenom; const v=(dot00*dot12-dot01*dot02)*invDenom; return (u>=0)&&(v>=0)&&(u+v<=1);}
+document.querySelectorAll('.smooth-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        smoothingLevel=parseFloat(btn.dataset.smoothing);
+        document.getElementById('currentSmoothing').textContent=btn.textContent;
+        updateBrushPreview();
+    });
+});
 
-function enableDrawingMultiTouch(svg, layer, fixedStroke=null, clipTriangle=null){
+let pathsStack={ triangleLayer:[], signatureLayer:[] };
+function pointInTriangle(px, py, ax, ay, bx, by, cx, cy){
+    const v0x=cx-ax, v0y=cy-ay, v1x=bx-ax, v1y=by-ay, v2x=px-ax, v2y=py-ay;
+    const dot00=v0x*v0x+v0y*v0y, dot01=v0x*v1x+v0y*v1y, dot02=v0x*v2x+v0y*v2y;
+    const dot11=v1x*v1x+v1y*v1y, dot12=v1x*v2x+v1y*v2y;
+    const invDenom=1/(dot00*dot11-dot01*dot01);
+    const u=(dot11*dot02-dot01*dot12)*invDenom;
+    const v=(dot00*dot12-dot01*dot02)*invDenom;
+    return (u>=0)&&(v>=0)&&(u+v<=1);
+}
+
+function enableSmoothDrawing(svg, layer, fixedStroke=null, clipTriangle=null){
     const svgNS='http://www.w3.org/2000/svg';
-    const activePointers={};
-    function addPoint(pt, stroke){
-        const size=fixedStroke!==null?fixedStroke:brushSizeValue;
-        let shape;
-        switch(brushShape){
-            case 'circle': shape=document.createElementNS(svgNS,'circle'); shape.setAttribute('cx',pt.x); shape.setAttribute('cy',pt.y); shape.setAttribute('r',size/2); break;
-            case 'square': shape=document.createElementNS(svgNS,'rect'); shape.setAttribute('x',pt.x-size/2); shape.setAttribute('y',pt.y-size/2); shape.setAttribute('width',size); shape.setAttribute('height',size); break;
-            case 'diamond': const half=size/2; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${pt.x},${pt.y-half} ${pt.x+half},${pt.y} ${pt.x},${pt.y+half} ${pt.x-half},${pt.y}`); break;
-            case 'triangle': const h=size; shape=document.createElementNS(svgNS,'polygon'); shape.setAttribute('points',`${pt.x},${pt.y-h/2} ${pt.x+h/2},${pt.y+h/2} ${pt.x-h/2},${pt.y+h/2}`); break;
-        }
-        shape.setAttribute('fill','black'); layer.appendChild(shape); stroke.push(shape);
-    }
-    function pointerMoveHandler(e){
-        const id=e.pointerId;
-        if(!activePointers[id]) return;
+    let path,lastPoint=null;
+    svg.addEventListener('pointerdown', e=>{
         e.preventDefault();
         const r=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal;
         const x=(e.clientX-r.left)*(vb.width/r.width); const y=(e.clientY-r.top)*(vb.height/r.height);
         if(clipTriangle && !pointInTriangle(x,y,65,5,125,155,5,155)) return;
-        const stroke=activePointers[id].stroke;
-        const prev=activePointers[id].prev;
-        const points=[];
-        if(prev){ const dx=x-prev.x, dy=y-prev.y, dist=Math.sqrt(dx*dx+dy*dy), steps=Math.ceil(dist/(fixedStroke||brushSizeValue/2)); for(let i=1;i<=steps;i++) points.push({x:prev.x+dx*i/steps, y:prev.y+dy*i/steps}); }
-        else points.push({x,y});
-        points.forEach(pt=>addPoint(pt,stroke)); activePointers[id].prev={x,y};
-    }
-    function pointerUpLeave(e){
-        const id=e.pointerId;
-        if(activePointers[id]){
-            const stroke=activePointers[id].stroke;
-            if(stroke.length) pathsStack[layer.id].push(stroke);
-            delete activePointers[id];
+        path=document.createElementNS(svgNS,'path');
+        path.setAttribute('stroke-linecap','round'); path.setAttribute('stroke-linejoin','round'); path.setAttribute('fill','none');
+        path.setAttribute('stroke','black');
+        path.setAttribute('stroke-width',(fixedStroke!==null?fixedStroke:brushSizeValue)+'pt');
+        path.setAttribute('d',`M ${x} ${y}`);
+        layer.appendChild(path);
+        lastPoint={x,y};
+    });
+    svg.addEventListener('pointermove', e=>{
+        if(!path) return;
+        const r=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal;
+        const x=(e.clientX-r.left)*(vb.width/r.width); const y=(e.clientY-r.top)*(vb.height/r.height);
+        if(clipTriangle && !pointInTriangle(x,y,65,5,125,155,5,155)) return;
+        if(lastPoint){
+            const midX=(lastPoint.x+x)/2, midY=(lastPoint.y+y)/2;
+            let d=path.getAttribute('d');
+            for(let i=1;i<=smoothingLevel;i++){
+                const t=i/(smoothingLevel+1);
+                const interpX=lastPoint.x*(1-t)+x*t;
+                const interpY=lastPoint.y*(1-t)+y*t;
+                d+=` L ${interpX} ${interpY}`;
+            }
+            path.setAttribute('d',d);
         }
-        try{ svg.releasePointerCapture(id); }catch{}
-    }
-    svg.addEventListener('pointerdown', e=>{ e.preventDefault(); const id=e.pointerId; const stroke=[]; activePointers[id]={stroke,prev:null}; svg.setPointerCapture(id); pointerMoveHandler(e); }, {passive:false});
-    svg.addEventListener('pointermove', pointerMoveHandler, {passive:false});
-    svg.addEventListener('pointerup', pointerUpLeave);
-    svg.addEventListener('pointerleave', pointerUpLeave);
+        lastPoint={x,y};
+    });
+    svg.addEventListener('pointerup', e=>{ if(path) pathsStack[layer.id].push([path]); path=null; lastPoint=null; });
+    svg.addEventListener('pointerleave', e=>{ if(path) pathsStack[layer.id].push([path]); path=null; lastPoint=null; });
 }
 
 const triangleLayer=document.getElementById('triangleLayer');
@@ -142,8 +183,8 @@ const signatureLayer=document.getElementById('signatureLayer');
 const triangleSvg=document.getElementById('triangleSvg');
 const signatureSvg=document.getElementById('signatureSvg');
 
-enableDrawingMultiTouch(triangleSvg, triangleLayer, null, true);
-enableDrawingMultiTouch(signatureSvg, signatureLayer, 1);
+enableSmoothDrawing(triangleSvg, triangleLayer, null, true);
+enableSmoothDrawing(signatureSvg, signatureLayer,1);
 
 function undo(layer){ const strokes=pathsStack[layer.id]; if(strokes.length){ const lastStroke=strokes.pop(); lastStroke.forEach(el=>layer.removeChild(el)); } }
 function clearLayer(layer){ while(layer.firstChild) layer.removeChild(layer.firstChild); pathsStack[layer.id]=[]; }
