@@ -67,7 +67,7 @@
     }
 
     .triangle-outline {
-      fill: none;
+      fill: #006400;
       stroke: #006400;
       stroke-width: 5pt;
       pointer-events: none;
@@ -86,6 +86,7 @@
       height: auto;
       max-height: 500px;
       border: 2px solid #006400;
+      position: relative;
     }
 
     .signature {
@@ -99,6 +100,22 @@
       stroke: #006400;
       stroke-width: 1;
       stroke-dasharray: 2,2;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 5px;
+    }
+
+    #previewContainer {
+      margin-top: 20px;
+    }
+
+    #previewContainer img {
+      max-width: 100%;
+      border: 1px solid #333;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -116,25 +133,36 @@
 </div>
 
 <label>Draw inside the triangle</label>
+<div class="button-group">
+  <button onclick="undo(triangleLayer)">Undo</button>
+  <button onclick="clearLayer(triangleLayer)">Clear</button>
+</div>
 <svg id="triangleSvg" class="triangle" viewBox="0 0 121 146">
   <defs>
     <clipPath id="clipTriangle">
       <polygon points="60.5,0 121,146 0,146" />
     </clipPath>
   </defs>
-  <g id="triangleGrid" clip-path="url(#clipTriangle)" pointer-events="none"></g>
   <polygon class="triangle-outline" points="60.5,0 121,146 0,146" />
   <g id="triangleLayer" clip-path="url(#clipTriangle)"></g>
 </svg>
 
 <label>Signature</label>
+<div class="button-group">
+  <button onclick="undo(signatureLayer)">Undo</button>
+  <button onclick="clearLayer(signatureLayer)">Clear</button>
+</div>
 <svg id="signatureSvg" class="signature" viewBox="0 0 121 40">
   <line x1="5" y1="35" x2="116" y2="35" class="signature-line" />
-  <g id="signatureGrid" pointer-events="none"></g>
   <g id="signatureLayer"></g>
 </svg>
 
-<button onclick="submitForm()">Submit</button>
+<div class="button-group">
+  <button onclick="submitForm()">Submit</button>
+  <button onclick="previewDrawing()">Preview</button>
+</div>
+
+<div id="previewContainer"></div>
 
 <script>
 emailjs.init('2MRCF5mqDT4FkYDi-');
@@ -143,32 +171,9 @@ const brush = document.getElementById('brushSize');
 const brushValue = document.getElementById('brushValue');
 brush.oninput = () => brushValue.textContent = brush.value + ' pt';
 
-function drawGrid(svg, layer, spacing) {
-  const vb = svg.viewBox.baseVal;
-  for (let x = spacing; x < vb.width; x += spacing) {
-    const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    l.setAttribute('x1', x); l.setAttribute('y1', 0);
-    l.setAttribute('x2', x); l.setAttribute('y2', vb.height);
-    l.setAttribute('stroke', '#ccc');
-    l.setAttribute('stroke-width', '0.3');
-    l.setAttribute('pointer-events', 'none');
-    layer.appendChild(l);
-  }
-  for (let y = spacing; y < vb.height; y += spacing) {
-    const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    l.setAttribute('x1', 0); l.setAttribute('y1', y);
-    l.setAttribute('x2', vb.width); l.setAttribute('y2', y);
-    l.setAttribute('stroke', '#ccc');
-    l.setAttribute('stroke-width', '0.3');
-    l.setAttribute('pointer-events', 'none');
-    layer.appendChild(l);
-  }
-}
+let pathsStack = { triangleLayer: [], signatureLayer: [] };
 
-drawGrid(triangleSvg, triangleGrid, 10);
-drawGrid(signatureSvg, signatureGrid, 5);
-
-function enableDrawing(svg, layer, fixedStroke=null) {
+function enableDrawing(svg, layer, clipPolygon=null, fixedStroke=null) {
   let drawing = false;
   let path;
   function point(e) {
@@ -176,28 +181,105 @@ function enableDrawing(svg, layer, fixedStroke=null) {
     const vb = svg.viewBox.baseVal;
     return {x: (e.clientX - r.left)*(vb.width/r.width), y: (e.clientY - r.top)*(vb.height/r.height)};
   }
+
+  function isInsidePolygon(p, polygonPoints){
+    let x = p.x, y = p.y;
+    let inside = false;
+    for(let i=0,j=polygonPoints.length-1;i<polygonPoints.length;j=i++){
+      let xi = polygonPoints[i][0], yi = polygonPoints[i][1];
+      let xj = polygonPoints[j][0], yj = polygonPoints[j][1];
+      let intersect = ((yi>y)!=(yj>y)) && (x<(xj-xi)*(y-yi)/(yj-yi)+xi);
+      if(intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  let polygonPoints = clipPolygon ? clipPolygon.map(pt=>[pt.x,pt.y]):[];
+
   svg.addEventListener('pointerdown', e => {
-    drawing = true;
     const p = point(e);
+    if(polygonPoints.length && !isInsidePolygon(p, polygonPoints)) return;
+    drawing = true;
     path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('class', 'draw-path');
     const width = fixedStroke!==null ? fixedStroke : brush.value;
     path.setAttribute('stroke-width', width + 'pt');
     path.setAttribute('d', `M ${p.x} ${p.y}`);
     layer.appendChild(path);
+    pathsStack[layer.id].push(path);
     svg.setPointerCapture(e.pointerId);
   });
-  svg.addEventListener('pointermove', e => { if(!drawing) return; const p=point(e); path.setAttribute('d', path.getAttribute('d') + ` L ${p.x} ${p.y}`);});
+
+  svg.addEventListener('pointermove', e => {
+    if(!drawing) return;
+    const p = point(e);
+    if(polygonPoints.length && !isInsidePolygon(p, polygonPoints)) return;
+    path.setAttribute('d', path.getAttribute('d') + ` L ${p.x} ${p.y}`);
+  });
+
   svg.addEventListener('pointerup', ()=>drawing=false);
   svg.addEventListener('pointerleave', ()=>drawing=false);
 }
 
-enableDrawing(triangleSvg, triangleLayer);
-enableDrawing(signatureSvg, signatureLayer,1);
+const triangleLayer = document.getElementById('triangleLayer');
+const triangleSvg = document.getElementById('triangleSvg');
+const trianglePolygon = [{x:60.5,y:0},{x:121,y:146},{x:0,y:146}];
+const signatureLayer = document.getElementById('signatureLayer');
+const signatureSvg = document.getElementById('signatureSvg');
 
-async function svgToPng(svg){return new Promise(resolve=>{const clone=svg.cloneNode(true);clone.querySelectorAll('[pointer-events]').forEach(n=>n.parentNode.removeChild(n));const xml=new XMLSerializer().serializeToString(clone);const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(img,0,0);resolve(c.toDataURL('image/png'));};img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));});}
+enableDrawing(triangleSvg, triangleLayer, trianglePolygon);
+enableDrawing(signatureSvg, signatureLayer, null, 1);
 
-async function submitForm(){const name=typedName.value.trim();if(!name)return alert('Type your name');const tri=await svgToPng(triangleSvg);const sig=await svgToPng(signatureSvg);emailjs.send('service_8s9eadc','template_jm26nk5',{student_name:name,triangle_image:tri,signature_image:sig,to_email:'stevegabrio@gmail.com'});alert('Submitted!');}
+function undo(layer){
+  const arr = pathsStack[layer.id];
+  if(arr.length>0){
+    layer.removeChild(arr.pop());
+  }
+}
+
+function clearLayer(layer){
+  while(layer.firstChild){
+    layer.removeChild(layer.firstChild);
+  }
+  pathsStack[layer.id] = [];
+}
+
+async function svgToPng(svg, excludeSelector=null){
+  return new Promise(resolve=>{
+    const clone = svg.cloneNode(true);
+    if(excludeSelector) clone.querySelectorAll(excludeSelector).forEach(n=>n.remove());
+    const xml = new XMLSerializer().serializeToString(clone);
+    const img = new Image();
+    img.onload = ()=>{
+      const c=document.createElement('canvas');
+      c.width=img.width; c.height=img.height;
+      const ctx=c.getContext('2d');
+      ctx.clearRect(0,0,c.width,c.height);
+      ctx.drawImage(img,0,0);
+      resolve(c.toDataURL('image/png'));
+    };
+    img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));
+  });
+}
+
+async function submitForm(){
+  const name = typedName.value.trim();
+  if(!name) return alert('Type your name');
+  const tri = await svgToPng(triangleSvg, '.triangle-outline');
+  const sig = await svgToPng(signatureSvg);
+  emailjs.send('service_8s9eadc','template_jm26nk5',{student_name:name,triangle_image:tri,signature_image:sig,to_email:'stevegabrio@gmail.com'});
+  alert('Submitted!');
+}
+
+async function previewDrawing(){
+  const tri = await svgToPng(triangleSvg, '.triangle-outline');
+  const sig = await svgToPng(signatureSvg);
+  const container = document.getElementById('previewContainer');
+  container.innerHTML = '<h3>Triangle Drawing Preview:</h3>' +
+                        '<img src="'+tri+'" alt="Triangle Drawing" />' +
+                        '<h3>Signature Preview:</h3>' +
+                        '<img src="'+sig+'" alt="Signature" />';
+}
 </script>
 </body>
 </html>
