@@ -5,14 +5,10 @@
   <title>Triangle Drawing Submission</title>
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
   <style>
-    /* ===== Body and general layout ===== */
     body {
       padding: 20mm;
       font-family: 'Comic Sans MS', sans-serif;
       background: linear-gradient(to bottom, #fff9f0, #ffe6e6);
-      background-image: url('https://i.ibb.co/8d8tZqT/snowflakes.png');
-      background-repeat: repeat;
-      background-size: 100px 100px;
       color: #333;
     }
 
@@ -86,8 +82,9 @@
     }
 
     .triangle {
-      width: 121mm;
-      height: 146mm;
+      width: 100%;
+      height: auto;
+      max-height: 500px;
       border: 2px solid #006400;
     }
 
@@ -95,30 +92,26 @@
       width: 121mm;
       height: 40mm;
       border: 2px solid #006400;
+      position: relative;
     }
 
-    /* Christmas decorations overlay */
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: url('https://i.ibb.co/8d8tZqT/snowflakes.png');
-      opacity: 0.2;
-      pointer-events: none;
-      z-index: 0;
+    .signature-line {
+      stroke: #006400;
+      stroke-width: 1;
+      stroke-dasharray: 2,2;
     }
   </style>
 </head>
 <body>
 
-<h2>Triangle Drawing Worksheet</h2>
+<h2>Triangle Drawing</h2>
 
 <label>Typed Name</label>
 <input id="typedName" type="text" placeholder="Type your name" />
 
 <div class="controls">
   <label>Brush size</label>
-  <input id="brushSize" type="range" min="1" max="15" value="5" />
+  <input id="brushSize" type="range" min="1" max="15" step="0.5" value="5" />
   <span id="brushValue">5 pt</span>
 </div>
 
@@ -136,6 +129,7 @@
 
 <label>Signature</label>
 <svg id="signatureSvg" class="signature" viewBox="0 0 121 40">
+  <line x1="5" y1="35" x2="116" y2="35" class="signature-line" />
   <g id="signatureGrid" pointer-events="none"></g>
   <g id="signatureLayer"></g>
 </svg>
@@ -143,7 +137,7 @@
 <button onclick="submitForm()">Submit</button>
 
 <script>
-emailjs.init('YOUR_PUBLIC_KEY');
+emailjs.init('2MRCF5mqDT4FkYDi-');
 
 const brush = document.getElementById('brushSize');
 const brushValue = document.getElementById('brushValue');
@@ -203,7 +197,7 @@ enableDrawing(signatureSvg, signatureLayer,1);
 
 async function svgToPng(svg){return new Promise(resolve=>{const clone=svg.cloneNode(true);clone.querySelectorAll('[pointer-events]').forEach(n=>n.parentNode.removeChild(n));const xml=new XMLSerializer().serializeToString(clone);const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(img,0,0);resolve(c.toDataURL('image/png'));};img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));});}
 
-async function submitForm(){const name=typedName.value.trim();if(!name)return alert('Type your name');const tri=await svgToPng(triangleSvg);const sig=await svgToPng(signatureSvg);emailjs.send('YOUR_SERVICE_ID','YOUR_TEMPLATE_ID',{student_name:name,triangle_image:tri,signature_image:sig,to_email:'stevegabrio@gmail.com'});alert('Submitted!');}
+async function submitForm(){const name=typedName.value.trim();if(!name)return alert('Type your name');const tri=await svgToPng(triangleSvg);const sig=await svgToPng(signatureSvg);emailjs.send('service_8s9eadc','template_jm26nk5',{student_name:name,triangle_image:tri,signature_image:sig,to_email:'stevegabrio@gmail.com'});alert('Submitted!');}
 </script>
 </body>
 </html>
