@@ -2,187 +2,187 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Triangle Drawing</title>
-<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<title>Triangle Drawing – Stable Base</title>
 
 <style>
-body{
-  padding:20mm;
-  font-family:'Comic Sans MS',sans-serif;
-  background:linear-gradient(#fff9f0,#ffe6e6);
+body {
+  padding: 20mm;
+  font-family: Arial, sans-serif;
 }
-h2{text-align:center;color:#a80000}
-label{font-weight:bold;margin-top:12px;display:block}
-button{
-  background:#a80000;color:white;
-  border:none;border-radius:8px;
-  padding:8px 14px;cursor:pointer
-}
-.controls{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}
-svg{touch-action:none;background:white;border-radius:10px}
 
-.triangle-outline{
-  fill:none;stroke:#006400;
-  stroke-width:5pt;pointer-events:none
-}
-.signature-line{stroke:#006400;stroke-width:1}
+h2 { text-align:center }
 
-#preview canvas{
-  max-width:100%;
-  border:2px solid #a80000;
-  margin-top:10px
+label {
+  font-weight: bold;
+  display: block;
+  margin-top: 12px;
+}
+
+.controls {
+  margin: 10px 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+button {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+svg {
+  background: white;
+  touch-action: none;
+  user-select: none;
+}
+
+.triangle-outline {
+  fill: none;
+  stroke: green;
+  stroke-width: 0.8;
+  pointer-events: none;
+}
+
+.draw-path {
+  fill: none;
+  stroke: black;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.signature-line {
+  stroke: black;
+  stroke-width: 0.3;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Triangle Drawing</h2>
+<h2>Triangle Drawing (Stable)</h2>
 
-<label>Name</label>
-<input id="typedName" style="width:100%;padding:6px">
-
+<label>Brush Size (mm)</label>
 <div class="controls">
-<button onclick="setSmooth(1)">Precise</button>
-<button onclick="setSmooth(3)">Smooth</button>
-<button onclick="setSmooth(6)">Very Smooth</button>
+  <input id="brushSize" type="range" min="0.1" max="1" step="0.05" value="0.3">
+  <span id="brushLabel">0.30 mm</span>
 </div>
 
+<label>Triangle</label>
 <div class="controls">
-<label>Brush Size</label>
-<input type="range" min="0.1" max="1" step="0.05" value="0.2"
-       id="brushSize">
-<span id="brushLabel">0.20 mm</span>
-</div>
-
-<label>Draw inside triangle</label>
-<div class="controls">
-<button onclick="undo(triangleLayer)">Undo</button>
-<button onclick="clearLayer(triangleLayer)">Clear</button>
+  <button onclick="undo(triangleLayer)">Undo</button>
+  <button onclick="clearLayer(triangleLayer)">Clear</button>
 </div>
 
 <svg id="triangleSvg"
-     viewBox="0 0 121 146"
-     width="100%" height="600">
+     width="121mm"
+     height="146mm"
+     viewBox="0 0 121 146">
 
-<polygon class="triangle-outline"
-  points="60.5,0 121,146 0,146"/>
+  <defs>
+    <clipPath id="triangleClip">
+      <polygon points="60.5,0 121,146 0,146" />
+    </clipPath>
+  </defs>
 
-<g id="triangleLayer"></g>
+  <polygon class="triangle-outline"
+           points="60.5,0 121,146 0,146"/>
+
+  <g id="triangleLayer" clip-path="url(#triangleClip)"></g>
 </svg>
 
 <label>Signature</label>
 <div class="controls">
-<button onclick="undo(signatureLayer)">Undo</button>
-<button onclick="clearLayer(signatureLayer)">Clear</button>
+  <button onclick="undo(signatureLayer)">Undo</button>
+  <button onclick="clearLayer(signatureLayer)">Clear</button>
 </div>
 
 <svg id="signatureSvg"
-     viewBox="0 0 121 40"
-     width="121mm" height="40mm">
-<line x1="5" y1="35" x2="116" y2="35"
-      class="signature-line"/>
-<g id="signatureLayer"></g>
+     width="121mm"
+     height="40mm"
+     viewBox="0 0 121 40">
+
+  <line x1="5" y1="30" x2="116" y2="30"
+        class="signature-line"/>
+
+  <g id="signatureLayer"></g>
 </svg>
 
-<div class="controls">
-<button onclick="preview()">Preview</button>
-<button onclick="downloadSVG()">Download SVG</button>
-<button onclick="submit()">Submit</button>
-</div>
-
-<div id="preview"></div>
-
 <script>
-emailjs.init('2MRCF5mqDT4FkYDi-');
-
-let smoothing=3;
-let brushSize=0.2;
-
-const brushInput=document.getElementById('brushSize');
-const brushLabel=document.getElementById('brushLabel');
-
-brushInput.oninput=()=>{
-  brushSize=parseFloat(brushInput.value);
-  brushLabel.textContent=brushSize.toFixed(2)+' mm';
+const brush = document.getElementById('brushSize');
+const brushLabel = document.getElementById('brushLabel');
+brush.oninput = () => {
+  brushLabel.textContent = brush.value + ' mm';
 };
 
-function setSmooth(v){ smoothing=v; }
+const stacks = new Map();
 
-const stacks={ triangleLayer:[], signatureLayer:[] };
+function enableDrawing(svg, layer, fixedSize = null) {
+  let drawing = false;
+  let path;
 
-const A={x:60.5,y:0},B={x:121,y:146},C={x:0,y:146};
-function insideTriangle(x,y){
-  const s=(p1,p2,p3)=>(p1.x-p3.x)*(p2.y-p3.y)-(p2.x-p3.x)*(p1.y-p3.y);
-  const P={x,y};
-  const b1=s(P,A,B)<0, b2=s(P,B,C)<0, b3=s(P,C,A)<0;
-  return (b1===b2)&&(b2===b3);
-}
+  stacks.set(layer, []);
 
-function enableDraw(svg,layer,isSignature=false){
-  let path=null,last=null;
-  svg.addEventListener('pointerdown',e=>{
-    const r=svg.getBoundingClientRect(),v=svg.viewBox.baseVal;
-    const x=(e.clientX-r.left)*v.width/r.width;
-    const y=(e.clientY-r.top)*v.height/r.height;
-    if(layer.id==='triangleLayer'&&!insideTriangle(x,y))return;
+  function svgPoint(e) {
+    const rect = svg.getBoundingClientRect();
+    const vb = svg.viewBox.baseVal;
+    return {
+      x: (e.clientX - rect.left) * vb.width / rect.width,
+      y: (e.clientY - rect.top) * vb.height / rect.height
+    };
+  }
 
-    path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('fill','none');
-    path.setAttribute('stroke','black');
-    path.setAttribute('stroke-width',
-      isSignature ? 0.15 : brushSize
-    );
-    path.setAttribute('stroke-linecap','round');
-    path.setAttribute('stroke-linejoin','round');
-    path._pts=[[x,y]];
-    path.setAttribute('d',`M ${x} ${y}`);
+  svg.addEventListener('pointerdown', e => {
+    drawing = true;
+    const p = svgPoint(e);
+
+    path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.classList.add('draw-path');
+    path.setAttribute('stroke-width', fixedSize ?? brush.value);
+    path.setAttribute('d', `M ${p.x} ${p.y}`);
+
     layer.appendChild(path);
-    last={x,y};
+    stacks.get(layer).push(path);
+
+    svg.setPointerCapture(e.pointerId);
   });
 
-  svg.addEventListener('pointermove',e=>{
-    if(!path)return;
-    const r=svg.getBoundingClientRect(),v=svg.viewBox.baseVal;
-    const x=(e.clientX-r.left)*v.width/r.width;
-    const y=(e.clientY-r.top)*v.height/r.height;
-    if(layer.id==='triangleLayer'&&!insideTriangle(x,y))return;
-
-    const dx=x-last.x,dy=y-last.y;
-    if(Math.hypot(dx,dy)<0.8)return;
-    path._pts.push([x,y]);
-    last={x,y};
+  svg.addEventListener('pointermove', e => {
+    if (!drawing) return;
+    const p = svgPoint(e);
+    path.setAttribute(
+      'd',
+      path.getAttribute('d') + ` L ${p.x} ${p.y}`
+    );
   });
 
-  svg.addEventListener('pointerup',()=>{
-    if(!path)return;
-    const pts=path._pts;
-    let d=`M ${pts[0][0]} ${pts[0][1]}`;
-    for(let i=1;i<pts.length;i++){
-      const p0=pts[i-1],p1=pts[i];
-      const mx=(p0[0]+p1[0])/2,my=(p0[1]+p1[1])/2;
-      d+=` Q ${p0[0]} ${p0[1]} ${mx} ${my}`;
-    }
-    path.setAttribute('d',d);
-    delete path._pts;
-    stacks[layer.id].push(path);
-    path=null;
-  });
+  function stop() {
+    drawing = false;
+    path = null;
+  }
+
+  svg.addEventListener('pointerup', stop);
+  svg.addEventListener('pointerleave', stop);
 }
 
-const triangleLayer=document.getElementById('triangleLayer');
-const signatureLayer=document.getElementById('signatureLayer');
-
-enableDraw(triangleSvg,triangleLayer,false);
-enableDraw(signatureSvg,signatureLayer,true);
-
-function undo(layer){
-  const p=stacks[layer.id].pop();
-  if(p)layer.removeChild(p);
-}
-function clearLayer(layer){
-  while(layer.firstChild)layer.removeChild(layer.firstChild);
-  stacks[layer.id]=[];
+function undo(layer) {
+  const s = stacks.get(layer);
+  if (!s.length) return;
+  layer.removeChild(s.pop());
 }
 
-function cleanSVG(svg
+function clearLayer(layer) {
+  while (layer.firstChild) layer.removeChild(layer.firstChild);
+  stacks.set(layer, []);
+}
+
+const triangleSvg = document.getElementById('triangleSvg');
+const signatureSvg = document.getElementById('signatureSvg');
+const triangleLayer = document.getElementById('triangleLayer');
+const signatureLayer = document.getElementById('signatureLayer');
+
+enableDrawing(triangleSvg, triangleLayer);
+enableDrawing(signatureSvg, signatureLayer, 0.3);
+</script>
+
+</body>
+</html>
