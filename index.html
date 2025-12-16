@@ -82,8 +82,8 @@ svg{
 </div>
 
 <label>Draw inside the triangle</label>
-<button onclick="undo(triangleLayer)">Undo</button>
-<button onclick="clearLayer(triangleLayer)">Clear</button>
+<button onclick="undo('triangleLayer')">Undo</button>
+<button onclick="clearLayer('triangleLayer')">Clear</button>
 
 <svg id="triangleSvg" class="triangle" viewBox="0 0 130 160">
   <defs>
@@ -97,8 +97,8 @@ svg{
 </svg>
 
 <label>Signature</label>
-<button onclick="undo(signatureLayer)">Undo</button>
-<button onclick="clearLayer(signatureLayer)">Clear</button>
+<button onclick="undo('signatureLayer')">Undo</button>
+<button onclick="clearLayer('signatureLayer')">Clear</button>
 
 <svg id="signatureSvg" class="signature" viewBox="0 0 121 40">
   <line x1="5" y1="35" x2="116" y2="35" class="signature-line"/>
@@ -123,7 +123,9 @@ const stacks = {
   signatureLayer: []
 };
 
-function enableDrawing(svg, layer, fixedWidth=null){
+function enableDrawing(svgId, layerId, fixedWidth=null){
+  const svg = document.getElementById(svgId);
+  const layer = document.getElementById(layerId);
   const ns = "http://www.w3.org/2000/svg";
   let path = null;
   let last = null;
@@ -165,7 +167,7 @@ function enableDrawing(svg, layer, fixedWidth=null){
 
   function end(){
     if(path){
-      stacks[layer.id].push(path);
+      stacks[layerId].push(path);
       path = null;
     }
   }
@@ -174,20 +176,23 @@ function enableDrawing(svg, layer, fixedWidth=null){
   svg.addEventListener('pointerleave', end);
 }
 
-enableDrawing(triangleSvg, triangleLayer);
-enableDrawing(signatureSvg, signatureLayer, 1);
+enableDrawing('triangleSvg','triangleLayer');
+enableDrawing('signatureSvg','signatureLayer',1);
 
-function undo(layer){
-  const s = stacks[layer.id];
+function undo(layerId){
+  const layer = document.getElementById(layerId);
+  const s = stacks[layerId];
   if(s.length) layer.removeChild(s.pop());
 }
 
-function clearLayer(layer){
-  stacks[layer.id]=[];
+function clearLayer(layerId){
+  const layer = document.getElementById(layerId);
+  stacks[layerId]=[];
   while(layer.firstChild) layer.removeChild(layer.firstChild);
 }
 
-function svgExport(svg, removeSelector=null){
+function svgExport(svgId, removeSelector=null){
+  const svg = document.getElementById(svgId);
   const clone = svg.cloneNode(true);
   if(removeSelector)
     clone.querySelectorAll(removeSelector).forEach(n=>n.remove());
@@ -195,8 +200,8 @@ function svgExport(svg, removeSelector=null){
 }
 
 function preview(){
-  const out = document.getElementById('previewArea');
-  out.innerHTML = svgExport(triangleSvg,'.triangle-outline');
+  document.getElementById('previewArea').innerHTML =
+    svgExport('triangleSvg','.triangle-outline');
 }
 
 function submitForm(){
@@ -205,8 +210,8 @@ function submitForm(){
 
   emailjs.send('service_8s9eadc','template_jm26nk5',{
     student_name:name,
-    triangle_svg:svgExport(triangleSvg,'.triangle-outline'),
-    signature_svg:svgExport(signatureSvg)
+    triangle_svg:svgExport('triangleSvg','.triangle-outline'),
+    signature_svg:svgExport('signatureSvg')
   });
 
   alert("Submitted!");
